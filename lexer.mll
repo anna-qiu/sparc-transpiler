@@ -55,6 +55,7 @@ rule token = parse
   | '>' { GREATER }
   | '<' { LESS }
   | '.' { DOT }
+  | "->" { TO }
   | "=>" { ARROW }
   | ':' { COLON }
   | '=' { EQUALS }

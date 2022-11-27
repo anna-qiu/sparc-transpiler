@@ -1,0 +1,12 @@
+type tree = Leaf of Z | Node of tree * Z * tree
+
+find (t,x) =
+  case t
+  | Leaf y => x = y
+  | Node (left, y, right) =>
+      if x = y then
+        true
+      else if x < y then
+        find (left, x)
+      else
+        find (right, x)

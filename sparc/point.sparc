@@ -1,0 +1,2 @@
+type point = PointTwo of Z * Z 
+           | Point3D of Z * Z * Z

@@ -1,0 +1,6 @@
+type plist = Nil | Cons of point * plist
+
+Cons(PointTwo(0,0),
+  Cons(PointTwo(0,1),
+    Cons(PointTwo(0,2),Nil)))
+ 

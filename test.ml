@@ -24,6 +24,7 @@ let show_token tok = let open Parser in
     | ARROW -> "ARROW"
     | COLON -> "COLON"
     | COMMA -> "COMMA"
+    | TO -> "TO"
 
     (* types *)
     | NAT -> "NAT"
@@ -58,4 +59,4 @@ let rec print_lex_all lexbuf = match Lexer.token lexbuf with
     print_lex_all lexbuf
 in
 
-print_lex_all (Lexing.from_string (In_channel.read_all "example.sparc"))
+print_lex_all (Lexing.from_string (In_channel.read_all "sparc/find.sparc"))

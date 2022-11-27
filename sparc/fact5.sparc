@@ -1,0 +1,5 @@
+let
+  f(i) = if (i < 2) then i else i * f(i-1)
+in
+  f(5)
+end
