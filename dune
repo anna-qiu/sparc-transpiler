@@ -5,5 +5,5 @@
  (modules parser))
 
 (executable
- (name test)
+ (name lextest)
  (libraries core yojson))
