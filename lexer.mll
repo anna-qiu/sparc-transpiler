@@ -17,8 +17,11 @@ rule token = parse
 
   (* types *)
   | "bool" { BOOL }
+  | "B" { BOOL }
   | "int" { INT }
+  | "Z" { INT }
   | "nat" { NAT }
+  | "N" { NAT }
   | "string" { STRING }
 
   (* keywords *)
