@@ -14,33 +14,27 @@ let exponent = ['e' 'E'] ['+' '-']? digit+
 rule token = parse
   (* ignored stuff *)
   | whitespace { token lexbuf }
-  | "//" [^'\n']* '\n' { token lexbuf }
-  | "/*" ([^'*']|('*' [^'/']))* '*' ['*']* '/' { token lexbuf }
 
   (* types *)
-  | "any" { ANY }
-  | "boolean" { BOOLEAN }
-  | "number" { NUMBER }
+  | "bool" { BOOL }
+  | "int" { INT }
+  | "nat" { NAT }
   | "string" { STRING }
-  | "void" { VOID }
 
   (* keywords *)
-  | "as" { AS }
-  | "const" { CONST }
-  | "do" { DO }
+  | "case" { CASE }
+  | "end" { END }
   | "else" { ELSE }
   | "false" { FALSE }
-  | "for" { FOR }
-  | "function" { FUNCTION }
   | "if" { IF }
-  | "import" { IMPORT }
   | "in" { IN }
-  | "instanceof" { INSTANCEOF }
-  | "interface" { INTERFACE }
+  | "lambda" { LAMBDA }
   | "let" { LET }
-  | "return" { RETURN }
+  | "not" { NOT }
+  | "of" { OF }
+  | "then" { THEN }
   | "true" { TRUE }
-  | "while" { WHILE }
+  | "type" { TYPE }
 
   (* symbols *)
   | '(' { LPAREN }
@@ -53,24 +47,21 @@ rule token = parse
   | '-' { MINUS }
   | '*' { TIMES }
   | '/' { DIV }
-  | "&&" { AND }
-  | "||" { OR }
-  | '!' { NOT }
-  | "===" { EQUALS }
+  | "||" { PARA }
+  | '|' { BAR }
   | '>' { GREATER }
   | '<' { LESS }
-  | ';' { SEMICOLON }
   | '.' { DOT }
   | "=>" { ARROW }
   | ':' { COLON }
-  | '=' { ASSIGN }
+  | '=' { EQUALS }
   | ',' { COMMA }
 
   (* literals *)
   | '"' { read_string (Buffer.create 17) lexbuf }
   | digit+ '.'? digit* exponent? as n { NUM (float_of_string n) }
   | '.' digit+ exponent? as n { NUM (float_of_string n) }
-  | id_begin id_token* as s { ID s }
+  | id_begin id_token* '\''* as s { ID s }
 
   (* eof *)
   | eof { EOF }
