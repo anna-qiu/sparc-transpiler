@@ -38,6 +38,8 @@ rule token = parse
   | "then" { THEN }
   | "true" { TRUE }
   | "type" { TYPE }
+  | "and" { AND }
+  | "or" { OR }
 
   (* symbols *)
   | '(' { LPAREN }
