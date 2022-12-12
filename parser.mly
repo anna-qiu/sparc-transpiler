@@ -10,7 +10,7 @@
 %token PLUS MINUS TIMES DIV
 %token EQUALS GREATER LESS
 %token PARA BAR
-%token DOT ARROW COLON COMMA TO
+%token DOT ARROW COMMA TO COLON
 
 (* types *)
 %token NAT INT BOOL STRING
@@ -52,8 +52,22 @@ pattern:
   ;
 
 typ:
+  | t = typ_prod { t }
   | t = typ_noprod { t }
-  | tl = separated_nonempty_list(TIMES, typ_noprod) { Prod tl }
+  ;
+
+typ_prod:
+  | t1 = typ; TO; t2 = typ; { Func { domain = t1; codomain = t2 } }
+  | t1 = typ_noprod; TIMES; tail = typ_tail { 
+    match tail with
+    | (false, Prod t2) -> Prod (t1::t2)
+    | (_, t2) -> Prod [t1; t2]
+   }
+  ;
+
+typ_tail:
+  | t = typ { (false, t) }
+  | LPAREN; t = typ; RPAREN { (true, t) }
   ;
 
 typ_noprod:
@@ -61,7 +75,6 @@ typ_noprod:
   | INT { Int }
   | BOOL { Boolean }
   | LPAREN; t = typ; RPAREN { t }
-  | t1 = typ; TO; t2 = typ { Func { domain = t1; codomain = t2 } }
   | t = tycon { Typ t }
   | d = dty { DTyp d }
   ;

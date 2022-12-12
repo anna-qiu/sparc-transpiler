@@ -48,6 +48,9 @@ let show_token tok = let open Parser in
     | CASE -> "CASE"
     | BAR -> "BAR"
 
+    | OR -> "OR"
+    | AND -> "AND"
+
     | NUM n -> sprintf "NUM %g" n
     | STR s -> sprintf "STR %s" (Yojson.Basic.pretty_to_string (`String s))
 in
@@ -59,4 +62,4 @@ let rec print_lex_all lexbuf = match Lexer.token lexbuf with
     print_lex_all lexbuf
 in
 
-print_lex_all (Lexing.from_string (In_channel.read_all "sparc/find.sparc"))
+print_lex_all (Lexing.from_string (In_channel.read_all "sparc/option.sparc"))

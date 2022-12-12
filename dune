@@ -1,3 +1,13 @@
+; (ocamllex lexer)
+
+; (menhir
+;  (flags (--explain))
+;  (modules parser))
+
+; (executable
+;  (name lextest)
+;  (libraries core yojson))
+
 (ocamllex lexer)
 
 (menhir
@@ -5,5 +15,7 @@
  (modules parser))
 
 (executable
- (name lextest)
- (libraries core yojson))
+ (name test)
+ (libraries core)
+ (preprocess
+  (pps ppx_deriving.show)))

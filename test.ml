@@ -12,14 +12,14 @@ let print_position outx lexbuf =
     pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
 
 let parse_with_error lexbuf =
-  try Parser.prog Lexer.token lexbuf with
+  try Parser.main Lexer.token lexbuf with
   | Parser.Error ->
     fprintf stderr "%a: syntax error\n" print_position lexbuf;
     exit (-1)
 
 let () =
-  let fname = "sparc/point.sparc" in
+  let fname = "sparc/option.sparc" in
   let lexbuf = Lexing.from_string (In_channel.read_all fname) in
   Lexing.set_filename lexbuf fname ;
   let result = parse_with_error lexbuf in
-  print_endline (Syntax.show_prog result)
+  print_endline (Syntax.show_main result)
