@@ -90,6 +90,11 @@ value:
   ;
 
 expression:
+  | e = expression_noapp { e }
+  // function application is left-associative
+  | e1 = expression_noapp; e2 = expression { App { func = e1; arg = e2 } }
+  ;
+expression_noapp:
   // maybe split into expression without binding and with bindings (like for if/then/else)
   | x = var { EVar x }
   | v = value { Value v }
@@ -99,7 +104,6 @@ expression:
   | LPAREN; e = expression; RPAREN { e }
   | CASE; e1 = expression; branches = nonempty_list(case_branch) { Case { sum = e1; branches = branches } }
   | IF; e1 = expression; THEN; e2 = expression; ELSE; e3 = expression { If { guard = e1; then_branch = e2; else_branch = e3 } }
-  | e1 = expression; e2 = expression { App { func = e1; arg = e2 } }
   | LET; bl = nonempty_list(binding); IN; e = expression; END { Bindings { bindings = bl; usage = e } }
   ;
 case_branch:
