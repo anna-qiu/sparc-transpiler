@@ -2,9 +2,6 @@
   open Syntax
 %}
 
-%token EOF
-%token <string> ID
-
 (* symbols *)
 %token LPAREN RPAREN LBRACE RBRACE LBRACKET RBRACKET
 %token PLUS MINUS TIMES DIV
@@ -19,8 +16,10 @@
 %token CASE END ELSE FALSE IF IN LAMBDA LET NOT OF 
 %token THEN TRUE TYPE AND OR
 
+%token <string> ID
 %token <float> NUM
 %token <string> STR
+%token EOF
 
 %start <main> main
 %%
@@ -111,6 +110,7 @@ expression_noapp:
   // maybe split into expression without binding and with bindings (like for if/then/else)
   | x = var { EVar x }
   | v = value { Value v }
+  | b = binding { TopLevelBinding b }
   | e1 = expression; op = operator; e2 = expression { Infix { op = op; e1 = e1; e2 = e2 } }
   | e1 = expression; COMMA; e2 = expression { Sequential { first = e1; second = e2 } }
   | e1 = expression; PARA; e2 = expression { Parallel { left = e1; right = e2 } }

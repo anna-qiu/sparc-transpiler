@@ -62,4 +62,4 @@ let rec print_lex_all lexbuf = match Lexer.token lexbuf with
     print_lex_all lexbuf
 in
 
-print_lex_all (Lexing.from_string (In_channel.read_all "sparc/option.sparc"))
+print_lex_all (Lexing.from_string (In_channel.read_all "sparc/test.sparc"))

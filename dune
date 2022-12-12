@@ -11,7 +11,7 @@
 (ocamllex lexer)
 
 (menhir
- (flags (--explain))
+ (flags (--explain --trace))
  (modules parser))
 
 (executable

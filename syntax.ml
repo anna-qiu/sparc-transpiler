@@ -125,6 +125,7 @@ and expression =
   | If of if_then_else
   | App of fn_app
   | Bindings of let_binding
+  | TopLevelBinding of binding
 [@@deriving show { with_path = false }]
 
 and infix =
