@@ -18,7 +18,7 @@ let parse_with_error lexbuf =
     exit (-1)
 
 let () =
-  let fname = "sparc/option.sparc" in
+  let fname = "sparc/test.sparc" in
   let lexbuf = Lexing.from_string (In_channel.read_all fname) in
   Lexing.set_filename lexbuf fname ;
   let result = parse_with_error lexbuf in

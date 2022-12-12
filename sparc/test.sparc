@@ -1,1 +1,4 @@
-type a = int
+datatype point = PointTwo of Z * Z 
+           | Point3D of Z * Z * Z
+
+type point2 = point

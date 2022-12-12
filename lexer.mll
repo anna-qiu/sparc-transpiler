@@ -10,10 +10,12 @@ let letter = ['a'-'z' 'A'-'Z']
 let id_begin = (letter|'_'|'$')
 let id_token = (letter|digit|'_'|'$')
 let exponent = ['e' 'E'] ['+' '-']? digit+
+let endline = '\n' | "\r\n"
 
 rule token = parse
   (* ignored stuff *)
   | whitespace { token lexbuf }
+  | endline { Lexing.new_line lexbuf; token lexbuf }
 
   (* types *)
   | "bool" { BOOL }
@@ -38,6 +40,7 @@ rule token = parse
   | "then" { THEN }
   | "true" { TRUE }
   | "type" { TYPE }
+  | "datatype" { DATATYPE }
   | "and" { AND }
   | "or" { OR }
 
@@ -88,5 +91,5 @@ and read_string buf =
     { Buffer.add_string buf (Lexing.lexeme lexbuf);
       read_string buf lexbuf
     }
-  | eof { raise (SyntaxError ("String is not terminated")) }
   | _ { raise (SyntaxError ("Illegal string character: " ^ Lexing.lexeme lexbuf)) }
+  | eof { raise (SyntaxError ("String is not terminated")) }

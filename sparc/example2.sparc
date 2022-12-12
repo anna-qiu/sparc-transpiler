@@ -1,5 +1,5 @@
 let
-  type point = PointTwo of Z * Z
+  datatype point = PointTwo of Z * Z
              | PointThree of Z * Z * Z
   injectThree (PointTwo (x,y)) = PointThree (x,y,0)
   projectTwo (PointThree (x,y,z)) = PointTwo (x,y)

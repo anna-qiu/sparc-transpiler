@@ -14,7 +14,7 @@
 
 (* keywords *)
 %token CASE END ELSE FALSE IF IN LAMBDA LET NOT OF 
-%token THEN TRUE TYPE AND OR
+%token THEN TRUE TYPE DATATYPE AND OR
 
 %token <string> ID
 %token <float> NUM
@@ -51,6 +51,10 @@ pattern:
   ;
 
 typ:
+  | n = ntyp { n }
+  | d = dty { DTyp d }
+
+ntyp:
   | t = typ_prod { t }
   | t = typ_noprod { t }
   ;
@@ -75,7 +79,6 @@ typ_noprod:
   | BOOL { Boolean }
   | LPAREN; t = typ; RPAREN { t }
   | t = tycon { Typ t }
-  | d = dty { DTyp d }
   ;
 
 dty:
@@ -138,6 +141,6 @@ operator:
 binding:
   | x = var; LPAREN; p = pattern; RPAREN; EQUALS; e = expression { FBind { func_name = x; func_args = p; func_body = e } }
   | p = pattern; EQUALS; e = expression { PBind { bind_pattern = p; bind_exp = e } }
-  | TYPE; n = tycon; EQUALS; t = typ { TBind { typ_name = n; bind_typ = t } }
-  | TYPE; n = tycon; EQUALS; t = dty { DBind { dtyp_name = n; bind_dty = t }}
+  | TYPE; n = tycon; EQUALS; t = ntyp { TBind { typ_name = n; bind_typ = t } }
+  | DATATYPE; n = tycon; EQUALS; t = dty { DBind { dtyp_name = n; bind_dty = t }}
   ;

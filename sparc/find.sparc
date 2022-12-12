@@ -1,4 +1,4 @@
-type tree = Leaf of Z | Node of tree * Z * tree
+datatype tree = Leaf of Z | Node of tree * Z * tree
 
 find (t,x) =
   case t

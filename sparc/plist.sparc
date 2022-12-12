@@ -1,4 +1,4 @@
-type plist = Nil | Cons of point * plist
+datatype plist = Nil | Cons of point * plist
 
 Cons(PointTwo(0,0),
   Cons(PointTwo(0,1),
