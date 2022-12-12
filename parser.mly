@@ -25,7 +25,7 @@
 %start <main> main
 %%
 main:
-  | el = list(expression) { el }
+  | el = list(expression); EOF { el }
   ;
 
 id:
