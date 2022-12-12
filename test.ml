@@ -18,8 +18,7 @@ let parse_with_error lexbuf =
     exit (-1)
 
 let () =
-  (* let fname = "basic.ts" in *)
-  let fname = "../hw7a/ts/part1/equal.ts" in
+  let fname = "sparc/point.sparc" in
   let lexbuf = Lexing.from_string (In_channel.read_all fname) in
   Lexing.set_filename lexbuf fname ;
   let result = parse_with_error lexbuf in

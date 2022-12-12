@@ -1,7 +1,7 @@
 (ocamllex lexer)
 
 (menhir
- (flags (--unused-tokens))
+ (flags (--explain))
  (modules parser))
 
 (executable

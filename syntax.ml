@@ -20,7 +20,7 @@ and typ =
   | DTyp of dtyp
   | Nat
   | Int
-  | Bool
+  | Boolean
 [@@deriving show { with_path = false }]
 
 and func_typ =
@@ -48,60 +48,72 @@ and lit =
 [@@deriving show { with_path = false }]
 
 and var = id
+[@@deriving show { with_path = false }]
 
 and tycon = id
+[@@deriving show { with_path = false }]
 
 and dcon = id
+[@@deriving show { with_path = false }]
 
 and pattern =
   | PVar of var
   | PPair of ppair
   | PCon of pcon
+[@@deriving show { with_path = false }]
 
 and ppair =
   {
-    left : pattern;
-    right : pattern;
+    p1 : pattern;
+    p2 : pattern;
   }
+[@@deriving show { with_path = false }]
 
 and pcon =
   {
-    constructor : dcon;
+    pconstructor : dcon;
     pattern : pattern;
   }
+[@@deriving show { with_path = false }]
 
 and value = 
   | Lit of lit
-  | UnOp of unary_op
-  | BinOp of binary_op
+  | UnOp of un_op
+  | BinOp of bin_op
   | VPair of vpair
   | VCon of vcon
   | Lambda of lambda
+[@@deriving show { with_path = false }]
 
-and unary_op = 
+and un_op = 
   | Not
+[@@deriving show { with_path = false }]
 
-and binary_op =
+(* and binary_op =
   | And
   | Or
+[@@deriving show { with_path = false }] *)
 
 and vpair = 
   {
-    left : value;
-    right : value;
+    v1 : value;
+    v2 : value;
   }
+[@@deriving show { with_path = false }]
 
 and vcon =
   {
-    constructor : dcon;
+    vconstructor : dcon;
     value : value
   }
+[@@deriving show { with_path = false }]
 
 and lambda =
   {
     params : pattern;
     body : expression
   }
+[@@deriving show { with_path = false }]
 
 and expression =
   | EVar of var
@@ -113,57 +125,66 @@ and expression =
   | If of if_then_else
   | App of fn_app
   | Bindings of let_binding
+[@@deriving show { with_path = false }]
 
 and infix =
   {
-    op : operator;
-    left : expression;
-    right : expression;
+    op : bin_op;
+    e1 : expression;
+    e2 : expression;
   }
+[@@deriving show { with_path = false }]
 
 and sequential =
   {
     first : expression;
     second : expression;
   }
+[@@deriving show { with_path = false }]
 
 and parallel =
   {
     left : expression;
     right : expression
   }
+[@@deriving show { with_path = false }]
 
 and case =
   {
     sum : expression;
     branches : case_branch list
   }
+[@@deriving show { with_path = false }]
 and case_branch =
   {
-    pattern : pattern;
+    matchp : pattern;
     exp : expression
   }
+[@@deriving show { with_path = false }]
 
 and if_then_else = 
   {
     guard : expression;
-    if_branch : expression;
+    then_branch : expression;
     else_branch : expression;
   }
+[@@deriving show { with_path = false }]
 
 and fn_app =
   {
     func : expression;
     arg : expression;
   }
+[@@deriving show { with_path = false }]
 
 and let_binding =
   {
     bindings : binding list;
-    exp : expression;
+    usage : expression;
   }
+[@@deriving show { with_path = false }]
 
-and operator =
+and bin_op =
   | Plus
   | Minus
   | Times
@@ -173,34 +194,43 @@ and operator =
   | Equals
   | Or
   | And
+[@@deriving show { with_path = false }]
 
 and binding = 
   | FBind of func_binding
   | PBind of pattern_binding
   | TBind of type_binding
   | DBind of dtyp_binding
+[@@deriving show { with_path = false }]
 
 and func_binding =
   {
-    name : id;
-    args : pattern;
-    body : expression;
+    func_name : id;
+    func_args : pattern;
+    func_body : expression;
   }
+[@@deriving show { with_path = false }]
 
 and pattern_binding =
   {
-    pattern : pattern;
-    exp : expression;
+    bind_pattern : pattern;
+    bind_exp : expression;
   }
+[@@deriving show { with_path = false }]
 
 and type_binding =
   {
-    name : tycon;
-    typ : typ;
+    typ_name : tycon;
+    bind_typ : typ;
   }
+[@@deriving show { with_path = false }]
 
 and dtyp_binding =
   {
-    name : tycon;
-    dty : dtyp;
+    dtyp_name : tycon;
+    bind_dty : dtyp;
   }
+[@@deriving show { with_path = false }]
+
+and main = expression list
+[@@deriving show { with_path = false }]
