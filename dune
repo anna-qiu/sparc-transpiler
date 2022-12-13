@@ -15,7 +15,7 @@
 ;  (modules parser))
 
 (executables
- (names test gentokens)
+ (names test gentokens parser)
  (libraries core)
  (preprocess
   (pps ppx_deriving.show)))
