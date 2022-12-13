@@ -1,0 +1,30 @@
+[(Parallel { left = (EVar { name = "a" }); right = (EVar { name = "b" }) });
+  (Parallel
+     { left =
+       (Sequential
+          { first = (EVar { name = "a" }); second = (EVar { name = "b" }) });
+       right = (EVar { name = "c" }) });
+  (Sequential
+     { first = (EVar { name = "a" });
+       second =
+       (Parallel
+          { left = (EVar { name = "b" }); right = (EVar { name = "c" }) })
+       });
+  (Sequential
+     { first =
+       (Sequential
+          { first =
+            (Sequential
+               { first = (EVar { name = "a" });
+                 second =
+                 (Parallel
+                    { left = (EVar { name = "b" });
+                      right = (EVar { name = "c" }) })
+                 });
+            second =
+            (Sequential
+               { first = (EVar { name = "d" });
+                 second = (EVar { name = "e" }) })
+            });
+       second = (EVar { name = "f" }) })
+  ]

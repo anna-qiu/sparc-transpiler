@@ -119,6 +119,7 @@ and expression =
   | EVar of var
   | Value of value
   | Infix of infix
+  | Unary of unary
   | Sequential of sequential
   | Parallel of parallel
   | Case of case
@@ -133,6 +134,13 @@ and infix =
     op : bin_op;
     e1 : expression;
     e2 : expression;
+  }
+[@@deriving show { with_path = false }]
+
+and unary =
+  {
+    unary_op : un_op;
+    e : expression;
   }
 [@@deriving show { with_path = false }]
 

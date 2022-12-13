@@ -1,0 +1,52 @@
+[(Infix
+    { op = Plus; e1 = (Value (Lit (Num 10.)));
+      e2 =
+      (Infix
+         { op = Times; e1 = (Value (Lit (Num 15.)));
+           e2 = (Value (Lit (Num 20.))) })
+      });
+  (Infix
+     { op = Times;
+       e1 =
+       (Infix
+          { op = Plus; e1 = (Value (Lit (Num 10.)));
+            e2 = (Value (Lit (Num 15.))) });
+       e2 = (Value (Lit (Num 20.))) });
+  (Infix
+     { op = And;
+       e1 =
+       (Infix
+          { op = Or;
+            e1 =
+            (Infix
+               { op = Equals; e1 = (Value (Lit (Num 10.)));
+                 e2 = (Value (Lit (Num 10.))) });
+            e2 =
+            (Infix
+               { op = Greater; e1 = (Value (Lit (Num 5.)));
+                 e2 = (Value (Lit (Num 7.))) })
+            });
+       e2 =
+       (Infix
+          { op = Or; e1 = (Value (Lit (Bool true)));
+            e2 = (Value (Lit (Bool false))) })
+       });
+  (Infix
+     { op = Divide; e1 = (Value (Lit (Num 1.)));
+       e2 =
+       (Infix
+          { op = Times;
+            e1 =
+            (Infix
+               { op = Minus; e1 = (Value (Lit (Num 2.)));
+                 e2 =
+                 (Infix
+                    { op = Plus; e1 = (Value (Lit (Num 3.)));
+                      e2 = (Value (Lit (Num 4.))) })
+                 });
+            e2 = (Value (Lit (Num 5.))) })
+       });
+  (Infix
+     { op = And; e1 = (Value (Lit (Bool false)));
+       e2 = (Unary { unary_op = Not; e = (Value (Lit (Bool true))) }) })
+  ]

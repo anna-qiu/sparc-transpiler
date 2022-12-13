@@ -1,0 +1,15 @@
+[(Infix
+    { op = And;
+      e1 =
+      (Infix
+         { op = Or; e1 = (Value (Lit (Bool false)));
+           e2 = (Value (Lit (Bool true))) });
+      e2 = (Value (Lit (Bool false))) });
+  (Infix
+     { op = Plus;
+       e1 =
+       (Infix
+          { op = Minus; e1 = (Value (Lit (Num 10.)));
+            e2 = (Value (Lit (Num 20.))) });
+       e2 = (Value (Lit (Num 15.))) })
+  ]

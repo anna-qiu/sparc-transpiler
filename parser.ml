@@ -180,7 +180,7 @@ let parse_value () =
   | Some TRUE -> print_debug ("checking true"); tokens := List.drop !tokens 1; Ok (Lit (Bool true))
   | Some FALSE -> print_debug ("checking false"); tokens := List.drop !tokens 1; Ok (Lit (Bool false))
   (* v -> unary operators *)
-  | Some NOT -> tokens := List.drop !tokens 1; Ok (UnOp Not)
+  (* | Some NOT -> tokens := List.drop !tokens 1; Ok (UnOp Not) *)
   (* v -> binary operators *) (* TODO: do we really need this *)
   (* | Some PLUS -> tokens := List.drop !tokens 1; Ok (BinOp Plus)
   | Some MINUS -> tokens := List.drop !tokens 1; Ok (BinOp Minus)
@@ -201,23 +201,160 @@ let parse_value () =
 (****
 --------parse expressions--------
 precedence:
-- x, v, (e), case e1 ..., let ... in ... end
-- e1 op e2   
-- TODO: what about e1, e2 and e1 || e2?
+- x, v, (e), case e1 ..., let b+ in e end, if e1 then e2 else e3
+- not e1
+- e1 * / e2
+- e1 + - e2
+- e1 < > = e2
+- e1 and or e2
+- e1 , || e2
+- e1 e2 (* TODO: not working?!?!?! *)
 ****)
 let rec parse_expr () =
-  parse_expr_binop ()
+  parse_expr_sequence ()
   (* TODO: *)
-  (* e -> e1, e2 *)
-  (* e -> e1 || e2 *)
   (* e -> case e1 ... *)
-  (* e -> e1 e2 *)
   (* e -> let b+ in e end *)
 
-(* e -> e1 op e2 *)
-and parse_expr_binop () =
+(* and parse_expr_funcapp () = 
+  match (parse_expr_sequence ()) with
+  | Ok caller -> (
+    print_debug ("\nCaller: " ^ Syntax.show_expression caller);
+    print_tokens ();
+    let result = ref caller in
+    let is_looping = ref true in
+    while !is_looping do
+      print_debug ("\n --looping for " ^ Syntax.show_expression !result);
+      match (parse_expr_sequence ()) with
+      | Ok arg -> result := App { func = !result; arg = arg };
+      | _ -> is_looping := false;
+      ;
+    done;
+    Ok !result
+  )
+  | _ -> Error (SyntaxError "cannot parse expression (funcapp)") *)
+
+(* e -> e1, e2 *)
+(* e -> e1 || e2 *)
+and parse_expr_sequence () =
   let stack = !tokens in
-  match (parse_expr_top ()) with
+  match (parse_expr_logic ()) with
+  | Ok e1 -> (
+    print_debug ("\nLHS: " ^ Syntax.show_expression e1);
+    print_tokens ();
+    let result = ref e1 in
+    let is_looping = ref true in
+    let is_valid = ref true in
+    let is_seq = ref true in
+    while !is_looping do
+      print_debug ("\n --looping for " ^ Syntax.show_expression !result);
+      match (List.hd !tokens) with
+      | Some COMMA -> tokens := List.drop !tokens 1;
+      | Some PARA -> tokens := List.drop !tokens 1; is_seq := false;
+      | _ -> print_debug ("Failed to find op" ); is_looping := false;
+      ;
+      if !is_looping then (match (parse_expr_logic ()) with
+        | Ok e2 -> 
+          if !is_seq
+          then (result := Sequential { first = !result; second = e2 };)
+          else (result := Parallel { left = !result; right = e2 };)
+        | _ -> tokens := stack; is_looping := false; is_valid := false;
+        ) else ();
+    done;
+    if !is_valid then print_debug ("\n!!!Returning, " ^ Syntax.show_expression !result);
+    if !is_valid then Ok !result else Error (SyntaxError "cannot parse expression (sequence)")
+  )
+  | _ -> Error (SyntaxError "cannot parse expression (sequence)")
+
+(* e1 and or e2 *)
+and parse_expr_logic () = 
+  let stack = !tokens in
+  match (parse_expr_compare ()) with
+  | Ok e1 -> (
+    print_debug ("\nLHS: " ^ Syntax.show_expression e1);
+    print_tokens ();
+    let result = ref e1 in
+    let is_looping = ref true in
+    let is_valid = ref true in
+    while !is_looping do
+      print_debug ("\n --looping for " ^ Syntax.show_expression !result);
+      let op = ref And in
+      match (List.hd !tokens) with
+      | Some AND -> tokens := List.drop !tokens 1; op := And;
+      | Some OR -> tokens := List.drop !tokens 1; op := Or;
+      | _ -> print_debug ("Failed to find op" ); is_looping := false;
+      ;
+      if !is_looping then (match (parse_expr_compare ()) with
+        | Ok e2 -> result := Infix { op = !op; e1 = !result; e2 = e2 };
+        | _ -> tokens := stack; is_looping := false; is_valid := false;
+        ) else ();
+    done;
+    if !is_valid then print_debug ("\n!!!Returning, " ^ Syntax.show_expression !result);
+    if !is_valid then Ok !result else Error (SyntaxError "cannot parse expression (logic)")
+  )
+  | _ -> Error (SyntaxError "cannot parse expression (logic)")
+
+(* e1 > < = e2 *)
+and parse_expr_compare () = 
+  let stack = !tokens in
+  match (parse_expr_plus ()) with
+  | Ok e1 -> (
+    print_debug ("\nLHS: " ^ Syntax.show_expression e1);
+    print_tokens ();
+    let result = ref e1 in
+    let is_looping = ref true in
+    let is_valid = ref true in
+    while !is_looping do
+      print_debug ("\n --looping for " ^ Syntax.show_expression !result);
+      let op = ref Equals in
+      match (List.hd !tokens) with
+      | Some GREATER -> tokens := List.drop !tokens 1; op := Greater;
+      | Some LESS -> tokens := List.drop !tokens 1; op := Less;
+      | Some EQUALS -> tokens := List.drop !tokens 1; op := Equals;
+      | _ -> print_debug ("Failed to find op" ); is_looping := false;
+      ;
+      if !is_looping then (match (parse_expr_plus ()) with
+        | Ok e2 -> result := Infix { op = !op; e1 = !result; e2 = e2 };
+        | _ -> tokens := stack; is_looping := false; is_valid := false;
+        ) else ();
+    done;
+    if !is_valid then print_debug ("\n!!!Returning, " ^ Syntax.show_expression !result);
+    if !is_valid then Ok !result else Error (SyntaxError "cannot parse expression (compare)")
+  )
+  | _ -> Error (SyntaxError "cannot parse expression (compare)")
+
+(* e1 + - e2 *)
+and parse_expr_plus () = 
+  let stack = !tokens in
+  match (parse_expr_mult ()) with
+  | Ok e1 -> (
+    print_debug ("\nLHS: " ^ Syntax.show_expression e1);
+    print_tokens ();
+    let result = ref e1 in
+    let is_looping = ref true in
+    let is_valid = ref true in
+    while !is_looping do
+      print_debug ("\n --looping for " ^ Syntax.show_expression !result);
+      let op = ref Plus in
+      match (List.hd !tokens) with
+      | Some PLUS -> tokens := List.drop !tokens 1; op := Plus;
+      | Some MINUS -> tokens := List.drop !tokens 1; op := Minus;
+      | _ -> print_debug ("Failed to find op" ); is_looping := false;
+      ;
+      if !is_looping then (match (parse_expr_mult ()) with
+        | Ok e2 -> result := Infix { op = !op; e1 = !result; e2 = e2 };
+        | _ -> tokens := stack; is_looping := false; is_valid := false;
+        ) else ();
+    done;
+    if !is_valid then print_debug ("\n!!!Returning, " ^ Syntax.show_expression !result);
+    if !is_valid then Ok !result else Error (SyntaxError "cannot parse expression (plus)")
+  )
+  | _ -> Error (SyntaxError "cannot parse expression (plus)")
+
+(* e -> e1 * / e2 *)
+and parse_expr_mult () =
+  let stack = !tokens in
+  match (parse_expr_not ()) with
   | Ok e1 -> (
     print_debug ("\nLHS: " ^ Syntax.show_expression e1);
     print_tokens ();
@@ -227,25 +364,18 @@ and parse_expr_binop () =
     (* loop until no more binops can be found *)
     while !is_looping do
       print_debug ("\n --looping for " ^ Syntax.show_expression !result);
-      let op = ref Plus in
+      let op = ref Times in
       match (List.hd !tokens) with
-      | Some PLUS -> tokens := List.drop !tokens 1; op := Plus;
-      | Some MINUS -> tokens := List.drop !tokens 1; op := Minus;
       | Some TIMES -> tokens := List.drop !tokens 1; op := Times;
       | Some DIV -> tokens := List.drop !tokens 1; op := Divide;
-      | Some LESS -> tokens := List.drop !tokens 1; op := Less;
-      | Some GREATER -> tokens := List.drop !tokens 1; op := Greater;
-      | Some EQUALS -> tokens := List.drop !tokens 1; op := Equals;
-      | Some OR -> tokens := List.drop !tokens 1; op := Or;
-      | Some AND -> tokens := List.drop !tokens 1; op := And;
       | _ -> print_debug ("Failed to find op" ); is_looping := false;
       ;
       if !is_looping then print_op !op;
       (* if binop found, attempt to parse RHS expr:
-          - if found: accumulate expr on the LHS (since left-associative), and continue the loop
-          - if failed, retore tokens and signal error by setting is_valid to false *)
-      if !is_looping then (match (parse_expr_top ()) with
-        | Ok e2 -> result := Infix { op = !op; e1 = !result; e2 = e2};
+        - if found: accumulate expr on the LHS (since left-associative), and continue the loop
+        - if failed, retore tokens and signal error by setting is_valid to false *)
+      if !is_looping then (match (parse_expr_not ()) with
+        | Ok e2 -> result := Infix { op = !op; e1 = !result; e2 = e2 };
         | _ -> tokens := stack; is_looping := false; is_valid := false;
         ) else ();
     done;
@@ -253,28 +383,75 @@ and parse_expr_binop () =
     if !is_valid then Ok !result else Error (SyntaxError "cannot parse expression (binop)")
   )
   | _ -> Error (SyntaxError "cannot parse expression (binop)")
-    
+
+(* e -> not e *)
+and parse_expr_not () =
+  let stack = !tokens in
+  let is_looping = ref true in
+  let is_valid = ref true in
+  let result = ref None in
+  while !is_looping do
+    match (List.hd !tokens) with
+    | Some NOT -> tokens := List.drop !tokens 1;
+    | _ -> is_looping := false;
+    ;
+    if !is_looping then (match (parse_expr_top ()) with
+      | Ok e' -> (match (!result) with
+        | None -> result := Some (Unary { unary_op = Not; e = e' });
+        | Some e -> result := Some (Unary { unary_op = Not; e = e })
+        )
+      | _ -> tokens := stack; is_looping := false; is_valid := false;
+      ) else ();
+  done;
+  if !is_valid then (
+    match (!result) with
+    | None -> parse_expr_top();
+    | Some r -> Ok r
+  ) else Error (SyntaxError "cannot parse expression (not)")
+
+(* e -> v *)
+(* e -> x *)
+(* e -> (e) *)
+(* e -> if e1 then e2 else e3 *)
 and parse_expr_top () =
-  (* e -> v *)
   match (parse_value ()) with
     | Ok value -> print_debug ("successfully parsed value " ^ show_value value); Ok (Value value)
     | _ -> (
-      (* e -> x *)
       match (parse_variable ()) with
       | Ok id -> print_debug ("successfully parsed variable " ^ show_id id); Ok (EVar id)
       | _ -> (
-        (* e -> (e) *)
         let stack = !tokens in
         match (List.hd !tokens) with
-        | Some LPAREN -> print_debug ("\n (e) case..."); tokens :=  List.drop !tokens 1; (
+        | Some LPAREN -> tokens :=  List.drop !tokens 1; (
           match (parse_expr ()) with
           | Ok e' -> (
             print_debug ("\n---> found e " ^ Syntax.show_expression e');
             match (List.hd !tokens) with
             | Some RPAREN -> tokens := List.drop !tokens 1; Ok e'
-            | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (top)")
+            | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (missing right paren)")
           )
-          | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (top)")
+          | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unclosed left paren)")
+        )
+        | Some IF -> tokens :=  List.drop !tokens 1; (
+          match (parse_expr ()) with
+          | Ok cond -> (
+            match (List.hd !tokens) with
+            | Some THEN -> tokens := List.drop !tokens 1; ( 
+              match (parse_expr ()) with
+              | Ok then_e -> (
+                match (List.hd !tokens) with
+                | Some ELSE -> tokens := List.drop !tokens 1; (
+                  match (parse_expr ()) with
+                  | Ok else_e -> Ok (If { guard = cond; then_branch = then_e; else_branch = else_e })
+                  | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unclosed else)")
+                )
+                | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (missing else)")
+              )
+              | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unclosed then)")
+            )
+            | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (missing then)")
+          )
+          | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unclosed if)")
         )
         | _ -> Error (SyntaxError "TODO: other cases")
       )
