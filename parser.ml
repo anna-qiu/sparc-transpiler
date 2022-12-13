@@ -67,9 +67,19 @@ let parse_dcon () =
   | Some ID x -> tokens := List.drop !tokens 1; Ok { name = x }
   | _ -> Error SyntaxError "cannot parse dcon"
 
+
+(****
+--------parse types--------
+precedence:
+- N, Z, B, (T)
+- T * T * ...
+- T -> T
+- TODO: tycon vs dty
+****)
 let parse_type () = 
   parse_type_arrow ()
 
+(* T: T -> T *)
 let parse_type_arrow () = 
   let stack = !tokens in
   match (parse_type_prod ()) with
@@ -78,7 +88,6 @@ let parse_type_arrow () =
     let is_looping = ref true in 
     let is_valid = ref true in
     while is_looping do
-      let op = ref TO in
       match (List.hd tokens) with
       | TO -> tokens := List.drop !tokens 1;
       | _ -> is_looping := false;
@@ -89,7 +98,51 @@ let parse_type_arrow () =
     done;
     if is_valid then Ok !result else Error SyntaxError "cannot parse type (arrow)"
   )
-  | -> Error SyntaxError "cannot parse type (arrow)"
+  | _ -> Error SyntaxError "cannot parse type (arrow)"
+
+(* T: T * T * ... *)
+let parse_type_prod () =
+  let stack = !tokens in
+  match (parse_type_top ()) with
+  | Ok left -> (
+    let result = ref left in
+    let is_looping = ref true in 
+    let is_valid = ref true in
+    while is_looping do
+      match (List.hd tokens) with
+      | TIMES -> tokens := List.drop !tokens 1;
+      | _ -> is_looping := false;
+      if is_looping then (match (parse_type_top ()) with
+        | Ok right -> result := Prod [left; right];
+        | _ -> tokens := stack; is_looping := false; is_valid := false;
+      ) else ();
+    done;
+    if is_valid then Ok !result else Error SyntaxError "cannot parse type (prod)"
+  )
+  | _ -> Error SyntaxError "cannot parse type (prod)"
+
+let parse_type_top () = 
+  match (List.hd tokens) with
+  (* T -> N *)
+  | Some NAT -> Nat
+  (* T -> Z *)
+  | Some INT -> Int
+  (* T -> B *)
+  | Some BOOL -> Boolean
+  (* T -> (T) *)
+  | LPAREN -> (
+    let stack = !tokens in
+    List.drop !tokens 1;
+    match (parse_type ()) with
+    | Ok t' -> (
+      match (List.hd tokens) with
+      | RPAREN -> Ok t'
+      | _ -> tokens := stack; Error SyntaxError "cannot parse type (top)"
+    )
+    | _ -> tokens := stack; Error SyntaxError "cannot parse type (top)"
+  )
+  (* TODO: tycon and dty - how to disambiguate? *)
+  | _ -> Error SyntaxError "TODO: other cases"
 
 (****
 --------parse values--------
