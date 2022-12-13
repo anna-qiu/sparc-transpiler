@@ -17,9 +17,19 @@ let parse_with_error lexbuf =
     fprintf stderr "%a: syntax error\n" print_position lexbuf;
     exit (-1)
 
+(* takes in a file name and gets all the tokens for it *)
+let gen_tokens (file : string) : token list =
+  let lexbuf = Lexing.from_string (In_channel.read_all file) in
+  Lexing.set_filename lexbuf file ;
+  let rec construct (buf : Lexing.lexbuf) : token list =
+    match Lexer.token buf with
+    | EOF -> [EOF]
+    | tok -> tok :: (construct buf)
+  in construct lexbuf
+
 let () =
-  let fname = "sparc/test.sparc" in
-  let lexbuf = Lexing.from_string (In_channel.read_all fname) in
-  Lexing.set_filename lexbuf fname ;
-  let result = parse_with_error lexbuf in
-  print_endline (Syntax.show_main result)
+  (* i think you can run dune exec ./parser.exe {file} *)
+  let fname = (Sys.get_argv ()).(1) in
+  let tokens = gen_tokens fname in
+  (* i think this is how you call the parser? i'm not sure what the type of the functions are *)
+  Parser.parse (tokens)
