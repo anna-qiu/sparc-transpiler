@@ -7,8 +7,9 @@
   (Sequential
      { first = (EVar { name = "a" });
        second =
-       (Parallel
-          { left = (EVar { name = "b" }); right = (EVar { name = "c" }) })
+       (EParen
+          (Parallel
+             { left = (EVar { name = "b" }); right = (EVar { name = "c" }) }))
        });
   (Sequential
      { first =
@@ -17,14 +18,16 @@
             (Sequential
                { first = (EVar { name = "a" });
                  second =
-                 (Parallel
-                    { left = (EVar { name = "b" });
-                      right = (EVar { name = "c" }) })
+                 (EParen
+                    (Parallel
+                       { left = (EVar { name = "b" });
+                         right = (EVar { name = "c" }) }))
                  });
             second =
-            (Sequential
-               { first = (EVar { name = "d" });
-                 second = (EVar { name = "e" }) })
+            (EParen
+               (Sequential
+                  { first = (EVar { name = "d" });
+                    second = (EVar { name = "e" }) }))
             });
        second = (EVar { name = "f" }) })
   ]

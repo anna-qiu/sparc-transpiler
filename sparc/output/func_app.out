@@ -1,0 +1,33 @@
+[(App { func = (EVar { name = "f" }); arg = (Value (Lit (Num 10.))) });
+  (App
+     { func =
+       (App { func = (EVar { name = "nth" }); arg = (EVar { name = "S" }) });
+       arg = (Value (Lit (Num 10.))) });
+  (App
+     { func = (EVar { name = "nth" });
+       arg =
+       (App { func = (EVar { name = "f" }); arg = (EVar { name = "A" }) }) });
+  (App
+     { func =
+       (App
+          { func =
+            (App
+               { func = (EVar { name = "reduce" });
+                 arg = (EVar { name = "f1" }) });
+            arg =
+            (App
+               { func =
+                 (App
+                    { func = (EVar { name = "nth" });
+                      arg = (EVar { name = "S" }) });
+                 arg = (Value (Lit (Num 0.))) })
+            });
+       arg =
+       (App
+          { func =
+            (App
+               { func = (EVar { name = "map" }); arg = (EVar { name = "f2" })
+                 });
+            arg = (EVar { name = "A" }) })
+       })
+  ]

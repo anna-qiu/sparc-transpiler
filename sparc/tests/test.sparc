@@ -1,0 +1,3 @@
+{ Z -> B
+{ B * Z -> N * (Z * Z)
+{ alpha -> beta -> (alpha * (beta -> beta)) * (N -> N)

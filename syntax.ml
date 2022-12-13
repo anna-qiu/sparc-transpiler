@@ -14,6 +14,7 @@ type id =
 [@@deriving show { with_path = false }]
 
 and typ =
+  | TParen of typ
   | Func of func_typ
   | Prod of prod_typ
   | Typ of tycon
@@ -77,6 +78,7 @@ and pcon =
 [@@deriving show { with_path = false }]
 
 and value = 
+  | VParen of value
   | Lit of lit
   | UnOp of un_op
   | BinOp of bin_op
@@ -116,6 +118,7 @@ and lambda =
 [@@deriving show { with_path = false }]
 
 and expression =
+  | EParen of expression
   | EVar of var
   | Value of value
   | Infix of infix
@@ -125,8 +128,9 @@ and expression =
   | Case of case
   | If of if_then_else
   | App of fn_app
-  | Bindings of let_binding
-  | TopLevelBinding of binding
+  | LocalBinding of let_binding
+  | GlobalBinding of binding
+  | Typ2 of typ (* just testing *)
 [@@deriving show { with_path = false }]
 
 and infix =

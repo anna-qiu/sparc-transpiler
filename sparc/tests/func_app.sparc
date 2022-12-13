@@ -1,0 +1,4 @@
+[f 10]
+[nth S 10]
+[nth [f A]]
+[reduce f1 [nth S 0] [map f2 A]]
