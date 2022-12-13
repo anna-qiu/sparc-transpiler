@@ -4,6 +4,7 @@ open! Parser
 type tlist = token list
 [@@deriving show { with_path = false }]
 
+(* takes in a file name and gets all the tokens for it *)
 let gen_tokens (file : string) : token list =
   let lexbuf = Lexing.from_string (In_channel.read_all file) in
   Lexing.set_filename lexbuf file ;
