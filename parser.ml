@@ -67,6 +67,30 @@ let parse_dcon () =
   | Some ID x -> tokens := List.drop !tokens 1; Ok { name = x }
   | _ -> Error SyntaxError "cannot parse dcon"
 
+let parse_type () = 
+  parse_type_arrow ()
+
+let parse_type_arrow () = 
+  let stack = !tokens in
+  match (parse_type_prod ()) with
+  | Ok domain -> (
+    let result = ref domain in
+    let is_looping = ref true in 
+    let is_valid = ref true in
+    while is_looping do
+      let op = ref TO in
+      match (List.hd tokens) with
+      | TO -> tokens := List.drop !tokens 1;
+      | _ -> is_looping := false;
+      if is_looping then (match (parse_type_prod ()) with
+        | Ok codomain -> result := Func { domain = !result; codomain = codomain };
+        | _ -> tokens := stack; is_looping := false; is_valid := false;
+        ) else ();
+    done;
+    if is_valid then Ok !result else Error SyntaxError "cannot parse type (arrow)"
+  )
+  | -> Error SyntaxError "cannot parse type (arrow)"
+
 (****
 --------parse values--------
 TODO: didn't reason about precedence yet, should probably test on the simple ones first
@@ -116,13 +140,14 @@ let parse_expr () =
 (* e -> e1 op e2 *)
 let parse_expr_binop () =
   let stack = !tokens in
-  match (parse_expr ()) with
+  match (parse_expr_top ()) with
   | Ok e1 -> (
     let result = ref e1 in
-    let is_looping = ref true in 
+    let is_looping = ref true in (* act as loop break *)
     let is_valid = ref true in
+    (* loop until no more binops can be found *)
     while is_looping do
-      let op = ref None in
+      let op = ref Plus in
       match (List.hd tokens) with
       | PLUS -> tokens := List.drop !tokens 1; op := Plus;
       | MINUS -> tokens := List.drop !tokens 1; op := Minus;
@@ -134,10 +159,13 @@ let parse_expr_binop () =
       | OR -> tokens := List.drop !tokens 1; op := Or;
       | AND -> tokens := List.drop !tokens 1; op := And;
       | _ -> is_looping := false; 
-        (match (parse_expr_top ()) with
-        | Ok e2 -> left := Infix { op = op; e1 = !left, e2 = e2};
-        | _ -> tokens := stack; is_looping := false; is_valid := false;
-        )
+        (* if binop found, attempt to parse RHS expr:
+           - if found: accumulate expr on the LHS (since left-associative), and continue the loop
+           - if failed, retore tokens and signal error by setting is_valid to false *)
+        if is_looping then (match (parse_expr_top ()) with
+          | Ok e2 -> result := Infix { op = op; e1 = !result, e2 = e2};
+          | _ -> tokens := stack; is_looping := false; is_valid := false;
+          ) else ();
     done;
     if is_valid then Ok !result else Error SyntaxError "cannot parse expression (binop)"
   )
@@ -167,6 +195,8 @@ let parse_expr_top () =
         | _ -> Error SyntaxError "TODO: other cases"
       )
     )
+
+(* TODO: patterns, types, data types, bindings *)
 
 let tokens = ref [];
 
