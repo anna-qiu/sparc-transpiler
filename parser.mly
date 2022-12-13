@@ -1,6 +1,5 @@
-%{
-  open Syntax
-%}
+open Syntax
+open Core
 
 (* symbols *)
 %token LPAREN RPAREN LBRACE RBRACE LBRACKET RBRACKET
@@ -20,6 +19,16 @@
 %token <float> NUM
 %token <string> STR
 %token EOF
+
+e -> variables or value or e1 op e2
+
+let tokens = ref [];
+let result = ref [];
+
+let parse_value =
+  match (List.hd tokens) with
+
+
 
 %start <main> main
 %%
