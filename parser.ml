@@ -63,19 +63,19 @@ let parse_variable () =
   match (List.hd tokens) with
   (* x -> id *)
   | Some ID x -> tokens := List.drop !tokens 1; Ok { name = x }
-  | _ -> Error SyntaxError "cannot parse variable"
+  | _ -> Error (SyntaxError "cannot parse variable")
 
 let parse_tycon () = 
   match (List.hd tokens) with
   (* tycon -> id *)
   | Some ID x -> tokens := List.drop !tokens 1; Ok { name = x }
-  | _ -> Error SyntaxError "cannot parse tycon"
+  | _ -> Error (SyntaxError "cannot parse tycon")
 
 let parse_dcon () = 
   match (List.hd tokens) with
   (* dcon -> id *)
   | Some ID x -> tokens := List.drop !tokens 1; Ok { name = x }
-  | _ -> Error SyntaxError "cannot parse dcon"
+  | _ -> Error (SyntaxError "cannot parse dcon")
 
 
 (****
@@ -106,9 +106,9 @@ let parse_type_arrow () =
         | _ -> tokens := stack; is_looping := false; is_valid := false;
         ) else ();
     done;
-    if is_valid then Ok !result else Error SyntaxError "cannot parse type (arrow)"
+    if is_valid then Ok !result else Error (SyntaxError "cannot parse type (arrow)")
   )
-  | _ -> Error SyntaxError "cannot parse type (arrow)"
+  | _ -> Error (SyntaxError "cannot parse type (arrow)")
 
 (* T: T * T * ... *)
 let parse_type_prod () =
@@ -127,9 +127,9 @@ let parse_type_prod () =
         | _ -> tokens := stack; is_looping := false; is_valid := false;
       ) else ();
     done;
-    if is_valid then Ok !result else Error SyntaxError "cannot parse type (prod)"
+    if is_valid then Ok !result else Error (SyntaxError "cannot parse type (prod)")
   )
-  | _ -> Error SyntaxError "cannot parse type (prod)"
+  | _ -> Error (SyntaxError "cannot parse type (prod)")
 
 let parse_type_top () = 
   match (List.hd tokens) with
@@ -147,12 +147,12 @@ let parse_type_top () =
     | Ok t' -> (
       match (List.hd tokens) with
       | RPAREN -> Ok t'
-      | _ -> tokens := stack; Error SyntaxError "cannot parse type (top)"
+      | _ -> tokens := stack; Error (SyntaxError "cannot parse type (top)")
     )
-    | _ -> tokens := stack; Error SyntaxError "cannot parse type (top)"
+    | _ -> tokens := stack; Error (SyntaxError "cannot parse type (top)")
   )
   (* TODO: tycon and dty - how to disambiguate? *)
-  | _ -> Error SyntaxError "TODO: other cases"
+  | _ -> Error (SyntaxError "TODO: other cases")
 
 (****
 --------parse values--------
@@ -182,7 +182,7 @@ let parse_value () =
   (* v -> (v) *)
   (* v -> dcon(v) *)
   (* v -> lambda p.e *)
-  | _ -> Error SyntaxError "TODO: other cases"
+  | _ -> Error (SyntaxError "TODO: other cases")
 
 (****
 --------parse expressions--------
@@ -230,9 +230,9 @@ let parse_expr_binop () =
           | _ -> tokens := stack; is_looping := false; is_valid := false;
           ) else ();
     done;
-    if is_valid then Ok !result else Error SyntaxError "cannot parse expression (binop)"
+    if is_valid then Ok !result else Error (SyntaxError "cannot parse expression (binop)")
   )
-  | _ -> Error SyntaxError "cannot parse expression (binop)"
+  | _ -> Error (SyntaxError "cannot parse expression (binop)")
     
 let parse_expr_top () =
   (* e -> x *)
@@ -251,11 +251,11 @@ let parse_expr_top () =
           | Ok e' -> (
             match (List.hd tokens) with
             | RPAREN -> Ok e'
-            | _ -> tokens := stack; Error SyntaxError "cannot parse expression (top)"
+            | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (top)")
           )
-          | _ -> tokens := stack; Error SyntaxError "cannot parse expression (top)"
+          | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (top)")
         )
-        | _ -> Error SyntaxError "TODO: other cases"
+        | _ -> Error (SyntaxError "TODO: other cases")
       )
     )
 
@@ -268,7 +268,4 @@ let () =
   let fname = (Sys.get_argv ()).(1) in
   tokens := gen_tokens fname;
   (* i think this is how you call the parser? i'm not sure what the type of the functions are *)
-  parse_expr_top ()
-
-(* let parse_file (tokens : Lexing.lexbuf) = () *)
-let main _ _ = ()
+in parse_expr ()
