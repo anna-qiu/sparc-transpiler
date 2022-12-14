@@ -5,9 +5,8 @@
          (PCon
             { pconstructor = { name = "cons" };
               pattern =
-              (Some (PPair
-                       { p1 = (PVar { name = "x" });
-                         p2 = (PVar { name = "y" }) }))
+              (PPair
+                 { p1 = (PVar { name = "x" }); p2 = (PVar { name = "y" }) })
               });
          exp =
          (Infix
@@ -22,13 +21,14 @@
         { matchp =
           (PCon
              { pconstructor = { name = "single" };
-               pattern = (Some (PVar { name = "x" })) });
+               pattern = (PVar { name = "x" }) });
           exp =
           (Infix
              { op = Times; e1 = (Value (Lit (Num 10.)));
                e2 = (EVar { name = "x" }) })
           };
-        { matchp = (PCon { pconstructor = { name = "nil" }; pattern = None });
+        { matchp =
+          (PCon { pconstructor = { name = "nil" }; pattern = PUnit });
           exp = (Value (Lit (Num 1.))) }
         ]
       })

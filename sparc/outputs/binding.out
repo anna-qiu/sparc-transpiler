@@ -1,0 +1,41 @@
+[(GlobalBinding
+    (PBind
+       { bind_pattern = (PVar { name = "a" });
+         bind_exp = (Value (Lit (Num -12.))) }));
+  (GlobalBinding
+     (PBind
+        { bind_pattern =
+          (PCon
+             { pconstructor = { name = "cons" };
+               pattern =
+               (PPair
+                  { p1 = (PVar { name = "x" }); p2 = (PVar { name = "y" }) })
+               });
+          bind_exp =
+          (Value
+             (VParen (VPair { v1 = (Lit (Num 10.)); v2 = (Lit (Num 20.)) })))
+          }));
+  (GlobalBinding
+     (DBind
+        { dtyp_name = { name = "list" };
+          bind_dty =
+          [{ id = { name = "cons" };
+             typ =
+             (TParen (Prod [(Typ { name = "a" }); (Typ { name = "b" })])) };
+            { id = { name = "nils" }; typ = TUnit };
+            { id = { name = "single" }; typ = Nat }]
+          }));
+  (GlobalBinding
+     (TBind
+        { typ_name = { name = "tree" }; bind_typ = (Typ { name = "list" }) }));
+  (GlobalBinding
+     (FBind
+        { func_name = { name = "sum" };
+          func_args =
+          (PPair { p1 = (PVar { name = "x" }); p2 = (PVar { name = "y" }) });
+          func_body =
+          (Infix
+             { op = Plus; e1 = (EVar { name = "x" });
+               e2 = (EVar { name = "y" }) })
+          }))
+  ]

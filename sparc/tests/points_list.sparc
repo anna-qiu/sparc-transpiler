@@ -1,0 +1,8 @@
+type point = _PointTwo of Z * Z 
+           | _Point3D of Z * Z * Z
+
+type point2 = point
+
+type plist = _Nil | _Cons of point * plist
+
+_Cons(_PointTwo(0, 0), _Cons(_PointTwo(0, 1), _Cons(_PointTwo(0, 2), _Nil)))

@@ -1,0 +1,67 @@
+[(GlobalBinding
+    (DBind
+       { dtyp_name = { name = "point" };
+         bind_dty =
+         [{ id = { name = "PointTwo" }; typ = (Prod [Int; Int]) };
+           { id = { name = "Point3D" }; typ = (Prod [Int; Int; Int]) }]
+         }));
+  (GlobalBinding
+     (TBind
+        { typ_name = { name = "point2" }; bind_typ = (Typ { name = "point" })
+          }));
+  (GlobalBinding
+     (DBind
+        { dtyp_name = { name = "plist" };
+          bind_dty =
+          [{ id = { name = "Nil" }; typ = TUnit };
+            { id = { name = "Cons" };
+              typ =
+              (Prod [(Typ { name = "point" }); (Typ { name = "plist" })]) }
+            ]
+          }));
+  (Value
+     (VCon
+        { vconstructor = { name = "Cons" };
+          value =
+          (VPair
+             { v1 =
+               (VCon
+                  { vconstructor = { name = "PointTwo" };
+                    value =
+                    (VPair { v1 = (Lit (Num 0.)); v2 = (Lit (Num 0.)) }) });
+               v2 =
+               (VCon
+                  { vconstructor = { name = "Cons" };
+                    value =
+                    (VPair
+                       { v1 =
+                         (VCon
+                            { vconstructor = { name = "PointTwo" };
+                              value =
+                              (VPair
+                                 { v1 = (Lit (Num 0.)); v2 = (Lit (Num 1.)) })
+                              });
+                         v2 =
+                         (VCon
+                            { vconstructor = { name = "Cons" };
+                              value =
+                              (VPair
+                                 { v1 =
+                                   (VCon
+                                      { vconstructor = { name = "PointTwo" };
+                                        value =
+                                        (VPair
+                                           { v1 = (Lit (Num 0.));
+                                             v2 = (Lit (Num 2.)) })
+                                        });
+                                   v2 =
+                                   (VCon
+                                      { vconstructor = { name = "Nil" };
+                                        value = VUnit })
+                                   })
+                              })
+                         })
+                    })
+               })
+          }))
+  ]

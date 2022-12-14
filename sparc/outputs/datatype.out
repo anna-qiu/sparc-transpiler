@@ -1,0 +1,16 @@
+[(GlobalBinding
+    (DBind
+       { dtyp_name = { name = "option" };
+         bind_dty =
+         [{ id = { name = "None" }; typ = TUnit };
+           { id = { name = "Some" }; typ = Nat }]
+         }));
+  (GlobalBinding
+     (DBind
+        { dtyp_name = { name = "intOption" };
+          bind_dty =
+          [{ id = { name = "INone" }; typ = TUnit };
+            { id = { name = "ISome" }; typ = Int };
+            { id = { name = "IOther" }; typ = (Prod [Int; Int]) }]
+          }))
+  ]

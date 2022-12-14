@@ -43,6 +43,7 @@ rule token = parse
   | "datatype" { DATATYPE }
   | "and" { AND }
   | "or" { OR }
+  | "fun" { FUN }
 
   (* symbols *)
   | '(' { LPAREN }
@@ -63,7 +64,8 @@ rule token = parse
   | "->" { TO }
   | "=>" { ARROW }
   | ':' { COLON }
-  | '=' { EQUALS }
+  | '=' { ASSIGN }
+  | "==" { EQUALS }
   | ',' { COMMA }
   | '_' { UNDERSCORE }
 

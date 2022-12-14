@@ -27,7 +27,7 @@ let gen_tokens (file : string) : Parser.token list =
     | tok -> tok :: (construct buf)
   in construct lexbuf
 
-(* dune build && diff -u sparc/output/xxx.out <(dune exec ./test.exe sparc/tests/xxx.sparc) *)
+(* dune build && diff -u sparc/outputs/xxx.out <(dune exec ./test.exe sparc/tests/xxx.sparc) *)
 let () =
   let fname = (Sys.get_argv ()).(1) in
   let tokens = gen_tokens fname in

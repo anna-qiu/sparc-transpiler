@@ -34,6 +34,7 @@ type token =
   | IF
   | ID of string
   | GREATER
+  | FUN
   | FALSE
   | EQUALS
   | EOF
@@ -47,6 +48,7 @@ type token =
   | CASE
   | BOOL
   | BAR
+  | ASSIGN
   | ARROW
   | AND
 [@@deriving show { with_path = false }]
@@ -96,7 +98,7 @@ let parse_dcon () =
 (****
 --------parse patterns--------
 precedence:
-- x, (p), dcon(p)
+- x, (), (p), dcon(p)
 - p1, p2
 ****)
 let rec parse_pattern () =
@@ -128,13 +130,17 @@ and parse_pattern_top () =
   | _ -> (
     match (List.hd !tokens) with
     | Some LPAREN -> tokens :=  List.drop !tokens 1; (
-      match (parse_pattern ()) with 
-      | Ok p' -> (
-        match (List.hd !tokens) with
-        | Some RPAREN -> tokens := List.drop !tokens 1; Ok (PParen p')
-        | _ -> tokens := stack; Error (SyntaxError "cannot parse pattern (missing right paren)")
+      match (List.hd !tokens) with
+      | Some RPAREN -> tokens := List.drop !tokens 1; Ok PUnit
+      | _ -> (
+        match (parse_pattern ()) with 
+        | Ok p' -> (
+          match (List.hd !tokens) with
+          | Some RPAREN -> tokens := List.drop !tokens 1; Ok (PParen p')
+          | _ -> tokens := stack; Error (SyntaxError "cannot parse pattern (missing right paren)")
+        )
+        | _ -> tokens := stack; Error (SyntaxError "cannot parse pattern (unused left paren)")
       )
-      | _ -> tokens := stack; Error (SyntaxError "cannot parse pattern (unused left paren)")
     )
     | _ -> (
       match (parse_dcon ()) with
@@ -144,12 +150,12 @@ and parse_pattern_top () =
           match (parse_pattern ()) with
           | Ok p' -> (
             match (List.hd !tokens) with
-            | Some RPAREN -> tokens := List.drop !tokens 1; Ok (PCon { pconstructor = dc; pattern = Some p' })
+            | Some RPAREN -> tokens := List.drop !tokens 1; Ok (PCon { pconstructor = dc; pattern = p' })
             | _ -> tokens := stack; Error (SyntaxError "cannot parse pattern (missing right paren after dcon)")
           )
           | _ -> tokens := stack; Error (SyntaxError "cannot parse pattern (unused left paren after dcon)")
         )
-        | _ -> Ok (PCon { pconstructor = dc; pattern = None })
+        | _ -> Ok (PCon { pconstructor = dc; pattern = PUnit })
       )
       | _ -> Error (SyntaxError "cannot parse pattern")
     )
@@ -193,7 +199,7 @@ and parse_type_prod () =
   let stack = !tokens in
   match (parse_type_top ()) with
   | Ok left -> (
-    let result = ref left in
+    let result : typ list ref = ref [left] in
     let is_looping = ref true in 
     let is_valid = ref true in
     while !is_looping do
@@ -202,11 +208,13 @@ and parse_type_prod () =
       | _ -> is_looping := false;
       ;
       if !is_looping then (match (parse_type_top ()) with
-        | Ok right -> result := Prod [left; right];
+        | Ok right -> result := right::!result;
         | _ -> tokens := stack; is_looping := false; is_valid := false;
       ) else ();
     done;
-    if !is_valid then Ok !result else Error (SyntaxError "cannot parse type (prod)")
+    if !is_valid 
+    then (if (List.length !result = 1) then Ok left else Ok (Prod (List.rev !result)))
+    else Error (SyntaxError "cannot parse type (prod)")
   )
   | _ -> Error (SyntaxError "cannot parse type (prod)")
 
@@ -246,15 +254,23 @@ dty -> dcon [od T] | dty
 let rec parse_datatype () =
   let stack = !tokens in
   let result = ref [] in
-  let is_looping = ref true in
-  let is_valid = ref true in
-  while !is_looping do
-    match (parse_datatype_recur ()) with
-    | Ok Some dty -> result := dty::!result;
-    | Ok None -> is_looping := false;
-    | _ -> tokens := stack; is_looping := false; is_valid := false;
-  done;
-  if !is_valid then Ok (DTyp (List.rev !result)) else Error (SyntaxError "cannot parse datatype")
+  match (parse_datatype_recur ()) with
+  | Ok dty -> result := [dty]; (
+    let is_looping = ref true in
+    let is_valid = ref true in
+    while !is_looping do
+      match (List.hd !tokens) with
+      | Some BAR -> tokens := List.drop !tokens 1; (
+        match (parse_datatype_recur ()) with
+        | Ok dty -> result := dty::!result;
+        | _ -> tokens := stack; is_looping := false; is_valid := false;
+      )
+      | _ -> is_looping := false;
+    done;
+    if !is_valid then Ok (DTyp (List.rev !result)) else Error (SyntaxError "cannot parse datatype")
+  )
+  | _ -> Error (SyntaxError "cannot parse datatype")
+ 
 
 and parse_datatype_recur () =
   let stack = !tokens in
@@ -263,17 +279,17 @@ and parse_datatype_recur () =
     match (List.hd !tokens) with
     | Some OF -> tokens := List.drop !tokens 1; (
       match (parse_type()) with
-      | Ok t -> Ok (Some { id = dc; typ = Some t })
+      | Ok t -> Ok ({ id = dc; typ = t })
       | _ -> tokens := stack; Error (SyntaxError "cannot parse datatype (unused of)")
     )
-    | _ -> Ok (Some { id = dc; typ = None })
+    | _ -> Ok ({ id = dc; typ = TUnit })
   )
-  | _ -> Ok None
+  | _ -> Error (SyntaxError "cannot parse datatype")
 
 (****
 --------parse values--------
 precedence:
-- numbers, booleans, (v), dcon(v) lambda p.e
+- numbers, booleans, (), (v), dcon(v) lambda p.e
 - v1, v2
 ****)
 let rec parse_value () = 
@@ -292,7 +308,7 @@ and parse_value_pair () =
     )
     | _ -> Ok v1
   )
-  | _ -> Error (SyntaxError "cannot parse value")
+  | _ -> tokens := stack; Error (SyntaxError "cannot parse value")
 
 (* v -> numbers *)
 (* v -> booleans *)
@@ -308,18 +324,22 @@ and parse_value_top () =
   | Some MINUS -> (
     match (List.hd (List.drop !tokens 1)) with
     | Some NUM n -> tokens := List.drop !tokens 2; Ok (Lit (Num (~-. n)))
-    | _ -> Error (SyntaxError "cannot parse value (unused minus)")
+    | _ -> tokens := stack; Error (SyntaxError "cannot parse value (unused minus)")
   )
-  | Some LPAREN -> tokens :=  List.drop !tokens 1; (
-    match (parse_value ()) with
-    | Ok v' -> (
-      match (List.hd !tokens) with
-      | Some RPAREN -> tokens := List.drop !tokens 1; Ok (VParen v')
-      | _ -> tokens := stack; Error (SyntaxError "cannot parse value (missing right paren)")
+  | Some LPAREN -> tokens := List.drop !tokens 1; (
+    match (List.hd !tokens) with
+    | Some RPAREN -> tokens := List.drop !tokens 1; Ok VUnit
+    | _ -> (
+      match (parse_value ()) with
+      | Ok v' -> (
+        match (List.hd !tokens) with
+        | Some RPAREN -> tokens := List.drop !tokens 1; Ok (VParen v')
+        | _ -> tokens := stack; Error (SyntaxError "cannot parse value (missing right paren)")
+      )
+      | _ -> tokens := stack; Error (SyntaxError "cannot parse value (unused left paren)")
     )
-    | _ -> tokens := stack; Error (SyntaxError "cannot parse value (unused left paren)")
   )
-  | Some LAMBDA -> tokens :=  List.drop !tokens 1; (
+  | Some LAMBDA -> tokens := List.drop !tokens 1; (
     print_tokens ();
     match (parse_pattern ()) with
     | Ok p -> (
@@ -346,15 +366,81 @@ and parse_value_top () =
           )
           | _ -> tokens := stack; Error (SyntaxError "cannot parse value (unused left paren after dcon)")
       )
-      | _ -> tokens := stack; Error (SyntaxError "cannot parse value (unused dcon)")
+      | _ -> Ok (VCon { vconstructor = dc; value = VUnit })
     )
-    | _ -> Error (SyntaxError "cannot parse value")
+    | _ -> tokens := stack; Error (SyntaxError "cannot parse value")
+  )
+
+(****
+--------parse bindings--------
+- fun x(p) = e
+- type tycon = T
+- type tycon = dty
+- p = e
+****)
+and parse_binding () =
+  let stack = !tokens in
+  match (List.hd !tokens) with
+  | Some FUN -> tokens := List.drop !tokens 1; (
+    match (parse_variable ()) with
+    | Ok x -> (
+      match (List.hd !tokens) with
+      | Some LPAREN -> tokens := List.drop !tokens 1; 
+        let args = ref PUnit in
+        (match (parse_pattern ()) with
+        | Ok p -> args := p;
+        | _ -> ());
+        (match (List.hd !tokens) with
+        | Some RPAREN -> tokens := List.drop !tokens 1; (
+          match (List.hd !tokens) with
+          | Some ASSIGN -> tokens := List.drop !tokens 1; (
+            match (parse_expr ()) with
+            | Ok e -> Ok (FBind { func_name = x; func_args = !args; func_body = e })
+            | _ -> tokens := stack; Error (SyntaxError "cannot parse binding (missing func body)")
+          )
+          | _ -> tokens := stack; Error (SyntaxError "cannot parse binding (missing assign)")
+        )
+        | _ -> tokens := stack; Error (SyntaxError "cannot parse binding (missing right paren)")
+      )
+      | _ -> tokens := stack; Error (SyntaxError "cannot parse binding (missing func args)")
+    )
+    | _ -> tokens := stack; Error (SyntaxError "cannot parse binding (unused fun)")
+  )
+  | Some TYPE -> tokens := List.drop !tokens 1; (
+    match (parse_tycon ()) with
+    | Ok tc -> (
+      match (List.hd !tokens) with 
+      | Some ASSIGN -> tokens := List.drop !tokens 1; (
+        match (parse_type ()) with
+        | Ok t -> Ok (TBind { typ_name = tc; bind_typ = t })
+        | _ -> (
+          match (parse_datatype ()) with
+          | Ok (DTyp dt) -> Ok (DBind { dtyp_name = tc; bind_dty = dt })
+          | _ -> tokens := stack; Error (SyntaxError "cannot parse binding (invalid type or datatype)")
+        )
+      )
+      | _ -> tokens := stack; Error (SyntaxError "cannot parse binding (missing assign)")
+    )
+    | _ -> tokens := stack; Error (SyntaxError "cannot parse binding (missing tycon)")
+  )
+  | _ -> (
+    match (parse_pattern ()) with
+    | Ok p -> (
+      match (List.hd !tokens) with
+      | Some ASSIGN -> tokens := List.drop !tokens 1; (
+        match (parse_expr ()) with
+        | Ok e -> Ok (PBind { bind_pattern = p; bind_exp = e })
+        | _ -> tokens := stack; Error (SyntaxError "cannot parse binding (invalid expression)")
+      )
+      | _ -> tokens := stack; Error (SyntaxError "cannot parse binding (missing assign)")
+    )
+    | _ -> Error (SyntaxError "cannot parse binding")
   )
 
 (****
 --------parse expressions--------
 precedence:
-- x, v, (e), case, let in end, if then else, [e1 e2], bindings
+- x, v, (e), case, let in end, if then else, [e1 e2], global bindings
 - not e1
 - e1 * / e2
 - e1 + - e2
@@ -542,6 +628,7 @@ and parse_expr_not () =
     | Some r -> Ok r
   ) else Error (SyntaxError "cannot parse expression (not)")
 
+(* e -> b *)
 (* e -> v *)
 (* e -> x *)
 (* e -> (e) *)
@@ -550,100 +637,100 @@ and parse_expr_not () =
 (* e -> case e1 | p => e2 *)
 and parse_expr_top () =
   let stack = !tokens in
-  match (parse_value ()) with
-    | Ok value -> print_debug ("successfully parsed value " ^ show_value value); Ok (Value value)
+  match (parse_binding ()) with
+    | Ok b -> Ok (GlobalBinding b)
     | _ -> (
-      match (parse_variable ()) with
-      | Ok var -> print_debug ("successfully parsed variable " ^ show_id var); Ok (EVar var)
+      match (parse_value ()) with
+      | Ok value -> print_debug ("successfully parsed value " ^ show_value value); Ok (Value value)
       | _ -> (
-        match (List.hd !tokens) with
-        | Some LPAREN -> tokens :=  List.drop !tokens 1; (
-          match (parse_expr ()) with
-          | Ok e' -> (
-            print_debug ("\n---> found e " ^ Syntax.show_expression e');
-            match (List.hd !tokens) with
-            | Some RPAREN -> tokens := List.drop !tokens 1; Ok (EParen e')
-            | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (missing right paren)")
-          )
-          | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused left paren)")
-        )
-        | Some IF -> tokens :=  List.drop !tokens 1; (
-          match (parse_expr ()) with
-          | Ok cond -> (
-            match (List.hd !tokens) with
-            | Some THEN -> tokens := List.drop !tokens 1; ( 
-              match (parse_expr ()) with
-              | Ok then_e -> (
-                match (List.hd !tokens) with
-                | Some ELSE -> tokens := List.drop !tokens 1; (
-                  match (parse_expr ()) with
-                  | Ok else_e -> Ok (If { guard = cond; then_branch = then_e; else_branch = else_e })
-                  | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused else)")
-                )
-                | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (missing else)")
-              )
-              | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused then)")
+        match (parse_variable ()) with
+        | Ok var -> print_debug ("successfully parsed variable " ^ show_id var); Ok (EVar var)
+        | _ -> (
+          match (List.hd !tokens) with
+          | Some LPAREN -> tokens :=  List.drop !tokens 1; (
+            match (parse_expr ()) with
+            | Ok e' -> (
+              print_debug ("\n---> found e " ^ Syntax.show_expression e');
+              match (List.hd !tokens) with
+              | Some RPAREN -> tokens := List.drop !tokens 1; Ok (EParen e')
+              | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (missing right paren)")
             )
-            | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (missing then)")
+            | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused left paren)")
           )
-          | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused if)")
-        )
-        | Some LBRACKET -> tokens := List.drop !tokens 1; (
-          match (parse_expr ()) with
-          | Ok caller -> (
-            let result = ref caller in
-            let is_looping = ref true in
-            while !is_looping do
-              match (parse_expr ()) with
-              | Ok arg -> result := App { func = !result; arg = arg };
-              | _ -> is_looping := false;
-              ;
-            done;
-            match (List.hd !tokens) with
-            | Some RBRACKET -> tokens := List.drop !tokens 1; Ok !result
-            | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (missing right bracket)")
-          )
-          | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused left bracket)")
-        )
-        | Some LBRACE -> tokens := List.drop !tokens 1; ( (* just testing *)
-          match (parse_type ()) with
-          | Ok t -> Ok (Typ2 t)
-          | _ -> Error (SyntaxError "wtf")
-        )
-        | Some CASE -> tokens := List.drop !tokens 1; (
-          match (parse_expr ()) with
-          | Ok e -> (
-            let cases = ref [] in
-            let is_looping = ref true in
-            let is_valid = ref true in
-            while !is_looping do
-              match (List.hd !tokens) with 
-              | Some BAR -> tokens := List.drop !tokens 1; (
-                match (parse_pattern ()) with
-                | Ok p -> (
+          | Some IF -> tokens :=  List.drop !tokens 1; (
+            match (parse_expr ()) with
+            | Ok cond -> (
+              match (List.hd !tokens) with
+              | Some THEN -> tokens := List.drop !tokens 1; ( 
+                match (parse_expr ()) with
+                | Ok then_e -> (
                   match (List.hd !tokens) with
-                  | Some ARROW -> tokens := List.drop !tokens 1; (
+                  | Some ELSE -> tokens := List.drop !tokens 1; (
                     match (parse_expr ()) with
-                    | Ok e' -> cases := {matchp = p; exp = e'}::!cases
-                    | _ -> is_looping := false; is_valid := false; (* case missing expression *)
+                    | Ok else_e -> Ok (If { guard = cond; then_branch = then_e; else_branch = else_e })
+                    | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused else)")
                   )
-                  | _ -> is_looping := false; is_valid := false; (* case missing arrow *)
+                  | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (missing else)")
                 )
-                | _ -> is_looping := false; is_valid := false;  (* case missing pattern *)
-                ;
+                | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused then)")
               )
-              | _ -> is_looping := false; (* no more cases *)
-              ;
-            done;
-            if (not !is_valid) || (List.length !cases = 0) 
-            then (tokens := stack; Error (SyntaxError "cannot parse expression (malformed case)"))
-            else Ok (Case { sum = e; branches = (List.rev !cases) })
+              | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (missing then)")
+            )
+            | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused if)")
           )
-          | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused case)")
+          | Some LBRACKET -> tokens := List.drop !tokens 1; (
+            match (parse_expr ()) with
+            | Ok caller -> (
+              let result = ref caller in
+              let is_looping = ref true in
+              while !is_looping do
+                match (parse_expr ()) with
+                | Ok arg -> result := App { func = !result; arg = arg };
+                | _ -> is_looping := false;
+                ;
+              done;
+              match (List.hd !tokens) with
+              | Some RBRACKET -> tokens := List.drop !tokens 1; Ok !result
+              | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (missing right bracket)")
+            )
+            | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused left bracket)")
+          )
+          | Some CASE -> tokens := List.drop !tokens 1; (
+            match (parse_expr ()) with
+            | Ok e -> (
+              let cases = ref [] in
+              let is_looping = ref true in
+              let is_valid = ref true in
+              while !is_looping do
+                match (List.hd !tokens) with 
+                | Some BAR -> tokens := List.drop !tokens 1; (
+                  match (parse_pattern ()) with
+                  | Ok p -> (
+                    match (List.hd !tokens) with
+                    | Some ARROW -> tokens := List.drop !tokens 1; (
+                      match (parse_expr ()) with
+                      | Ok e' -> cases := {matchp = p; exp = e'}::!cases
+                      | _ -> is_looping := false; is_valid := false; (* case missing expression *)
+                    )
+                    | _ -> is_looping := false; is_valid := false; (* case missing arrow *)
+                  )
+                  | _ -> is_looping := false; is_valid := false;  (* case missing pattern *)
+                  ;
+                )
+                | _ -> is_looping := false; (* no more cases *)
+                ;
+              done;
+              if (not !is_valid) || (List.length !cases = 0) 
+              then (tokens := stack; Error (SyntaxError "cannot parse expression (malformed case)"))
+              else Ok (Case { sum = e; branches = (List.rev !cases) })
+            )
+            | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused case)")
+          )
+          | _ -> Error (SyntaxError "other cases")
         )
-        | _ -> Error (SyntaxError "TODO: other cases")
       )
     )
+  
 
 (* TODO: types, data types, bindings *)
 
@@ -651,16 +738,18 @@ let parse_main () =
   let is_looping = ref true in
   let is_valid = ref true in
   let result = ref [] in
+  let error = ref "" in
   while !is_looping do 
     match (List.hd !tokens) with
     | Some EOF -> is_looping := false;
     | _ -> (
       match (parse_expr ()) with
       | Ok e -> result := e::(!result);
-      | _ -> is_looping := false; is_valid := false;
+      | Error (SyntaxError s) -> is_looping := false; is_valid := false; error := s;
+      | _ -> is_looping := false; is_valid := false; 
     )
     ;
   done;
-  if !is_valid then List.rev !result else [Value (Lit (Str "failed"))]
+  if !is_valid then List.rev !result else [Value (Lit (Str !error))]
 
 let parse (tks : token list) = tokens := tks; print_tokens (); parse_main ()

@@ -22,6 +22,7 @@ and typ =
   | Nat
   | Int
   | Boolean
+  | TUnit
 [@@deriving show { with_path = false }]
 
 and func_typ =
@@ -37,7 +38,7 @@ and dtyp = typeable list
 
 and typeable =
   { id : id;
-    typ : typ option;
+    typ : typ;
   }
 [@@deriving show { with_path = false }]
 
@@ -62,6 +63,7 @@ and pattern =
   | PPair of ppair
   | PCon of pcon
   | PParen of pattern
+  | PUnit
 [@@deriving show { with_path = false }]
 
 and ppair =
@@ -74,7 +76,7 @@ and ppair =
 and pcon =
   {
     pconstructor : dcon;
-    pattern : pattern option;
+    pattern : pattern;
   }
 [@@deriving show { with_path = false }]
 
@@ -86,6 +88,7 @@ and value =
   | VPair of vpair
   | VCon of vcon
   | Lambda of lambda
+  | VUnit
 [@@deriving show { with_path = false }]
 
 and un_op = 

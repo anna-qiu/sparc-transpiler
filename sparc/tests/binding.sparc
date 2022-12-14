@@ -1,0 +1,5 @@
+a = -12
+_cons(x, y) = (10, 20)
+type list = _cons of (a * b) | _nils | _single of N
+type tree = list 
+fun sum(x, y) = x + y

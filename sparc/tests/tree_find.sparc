@@ -1,0 +1,12 @@
+type tree = _Leaf of Z | _Node of Z * (tree * tree)
+
+fun find (t,x) =
+  case t
+  | _Leaf (y) => x == y
+  | _Node (y, (left, right)) =>
+      if x == y then
+        true
+      else if x < y then
+        [find (left, x)]
+      else
+        [find (right, x)]
