@@ -7,7 +7,7 @@ exception SyntaxError of string
 let whitespace = ' '|"\r\n"|'\n'|'\t'
 let digit = ['0'-'9']
 let letter = ['a'-'z' 'A'-'Z']
-let id_begin = (letter|'_'|'$')
+let id_begin = (letter|'$')
 let id_token = (letter|digit|'_'|'$')
 let exponent = ['e' 'E'] ['+' '-']? digit+
 let endline = '\n' | "\r\n"
@@ -65,6 +65,7 @@ rule token = parse
   | ':' { COLON }
   | '=' { EQUALS }
   | ',' { COMMA }
+  | '_' { UNDERSCORE }
 
   (* literals *)
   | '"' { read_string (Buffer.create 17) lexbuf }

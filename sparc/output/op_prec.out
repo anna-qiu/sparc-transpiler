@@ -10,9 +10,9 @@
        e1 =
        (EParen
           (Infix
-             { op = Plus; e1 = (Value (Lit (Num 10.)));
+             { op = Plus; e1 = (Value (Lit (Num -10.)));
                e2 = (Value (Lit (Num 15.))) }));
-       e2 = (Value (Lit (Num 20.))) });
+       e2 = (Value (Lit (Num -20.))) });
   (Infix
      { op = And;
        e1 =

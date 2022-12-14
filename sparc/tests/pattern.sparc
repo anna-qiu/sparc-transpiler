@@ -1,0 +1,6 @@
+(x)
+(y, (x))
+((x, y), (z))
+_cons(10, 20)
+lambda x . (x + 10)
+lambda (a, _cons(x, y)) . (a * x + a * y)

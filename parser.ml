@@ -4,6 +4,7 @@ open Syntax
 exception SyntaxError of string
 
 type token = 
+  | UNDERSCORE
   | TYPE
   | TRUE
   | TO
@@ -70,23 +71,89 @@ let print_op op =
     | _ -> print_endline "op: ???")
   else ()
 
+(* x -> id *)
 let parse_variable () =
   match (List.hd !tokens) with
-  (* x -> id *)
   | Some ID x -> tokens := List.drop !tokens 1; Ok { name = x }
   | _ -> Error (SyntaxError "cannot parse variable")
 
+(* tycon -> id *)
 let parse_tycon () = 
   match (List.hd !tokens) with
-  (* tycon -> id *)
   | Some ID x -> tokens := List.drop !tokens 1; Ok { name = x }
   | _ -> Error (SyntaxError "cannot parse tycon")
 
+(* dcon -> _id *)
 let parse_dcon () = 
   match (List.hd !tokens) with
-  (* dcon -> id *)
-  | Some ID x -> tokens := List.drop !tokens 1; Ok { name = x }
+  | Some UNDERSCORE -> (
+    match (List.hd (List.drop !tokens 1)) with
+    | Some ID x -> tokens := List.drop !tokens 2; Ok { name = x }
+    | _ -> Error (SyntaxError "cannot parse dcon (unused underscore)")
+  )
   | _ -> Error (SyntaxError "cannot parse dcon")
+
+(****
+--------parse patterns--------
+precedence:
+- x, (p), dcon(p)
+- p1, p2
+****)
+let rec parse_pattern () =
+  parse_pattern_pair ()
+
+(* p -> p1, p2 *)
+and parse_pattern_pair () =
+  let stack = !tokens in
+  match (parse_pattern_top ()) with
+  | Ok p1 -> (
+    match (List.hd !tokens) with
+    | Some COMMA -> tokens := List.drop !tokens 1; (
+      match (parse_pattern_top ()) with
+      | Ok p2 -> Ok (PPair { p1 = p1; p2 = p2 })
+      | _ -> tokens := stack; Error (SyntaxError "cannot parse pattern (unused comma)")
+      )
+    | _ -> Ok p1
+    )
+  | _ -> Error (SyntaxError "cannot parse pattern")
+
+(* p -> x *)
+(* p -> (p) *)
+(* p -> dcon *)
+(* p -> dcon(p) *)
+and parse_pattern_top () =
+  let stack = !tokens in
+  match (parse_variable ()) with
+  | Ok var -> Ok (PVar var)
+  | _ -> (
+    match (List.hd !tokens) with
+    | Some LPAREN -> tokens :=  List.drop !tokens 1; (
+      match (parse_pattern ()) with 
+      | Ok p' -> (
+        match (List.hd !tokens) with
+        | Some RPAREN -> tokens := List.drop !tokens 1; Ok (PParen p')
+        | _ -> tokens := stack; Error (SyntaxError "cannot parse pattern (missing right paren)")
+      )
+      | _ -> tokens := stack; Error (SyntaxError "cannot parse pattern (unused left paren)")
+    )
+    | _ -> (
+      match (parse_dcon ()) with
+      | Ok dc -> (
+        match (List.hd !tokens) with
+        | Some LPAREN -> tokens :=  List.drop !tokens 1; (
+          match (parse_pattern ()) with
+          | Ok p' -> (
+            match (List.hd !tokens) with
+            | Some RPAREN -> tokens := List.drop !tokens 1; Ok (PCon { pconstructor = dc; pattern = Some p' })
+            | _ -> tokens := stack; Error (SyntaxError "cannot parse pattern (missing right paren after dcon)")
+          )
+          | _ -> tokens := stack; Error (SyntaxError "cannot parse pattern (unused left paren after dcon)")
+        )
+        | _ -> Ok (PCon { pconstructor = dc; pattern = None })
+      )
+      | _ -> Error (SyntaxError "cannot parse pattern")
+    )
+  )
 
 (****
 --------parse types--------
@@ -94,7 +161,7 @@ precedence:
 - N, Z, B, (T), tycon
 - T * T * ...
 - T -> T
-- TODO: dty
+- TODO: dty???
 ****)
 let rec parse_type () = 
   parse_type_arrow ()
@@ -172,7 +239,9 @@ and parse_type_top () =
   )
 
 (****
---------parse datatypes--------    
+--------parse datatypes--------   
+dty -> dcon [of T]
+dty -> dcon [od T] | dty 
 ****)
 let rec parse_datatype () =
   let stack = !tokens in
@@ -203,22 +272,84 @@ and parse_datatype_recur () =
 
 (****
 --------parse values--------
-TODO: didn't reason about precedence yet, should probably test on the simple ones first
+precedence:
+- numbers, booleans, (v), dcon(v) lambda p.e
+- v1, v2
 ****)
-let parse_value () = 
-  print_tokens ();
+let rec parse_value () = 
+  parse_value_pair () 
+
+(* v -> v1, v2 *)
+and parse_value_pair () = 
+  let stack = !tokens in
+  match (parse_value_top ()) with
+  | Ok v1 -> (
+    match (List.hd !tokens) with
+    | Some COMMA -> tokens := List.drop !tokens 1; (
+      match (parse_value_top ()) with
+      | Ok v2 -> Ok (VPair { v1 = v1; v2 = v2 })
+      | _ -> tokens := stack; Error (SyntaxError "cannot parse value (unused comma)")
+    )
+    | _ -> Ok v1
+  )
+  | _ -> Error (SyntaxError "cannot parse value")
+
+(* v -> numbers *)
+(* v -> booleans *)
+(* v -> (v) *)
+(* v -> lambda p.e *)
+(* v -> dcon(v) *)
+and parse_value_top () = 
+  let stack = !tokens in
   match (List.hd !tokens) with
-  (* v -> numbers *)
   | Some NUM n -> tokens := List.drop !tokens 1; Ok (Lit (Num n))
-  (* v -> booleans *)
-  | Some TRUE -> print_debug ("checking true"); tokens := List.drop !tokens 1; Ok (Lit (Bool true))
-  | Some FALSE -> print_debug ("checking false"); tokens := List.drop !tokens 1; Ok (Lit (Bool false))
-  (* TODO: *)
-  (* v -> v1,v2 *)
-  (* v -> (v) *)
-  (* v -> dcon(v) *)
-  (* v -> lambda p.e *)
-  | _ -> Error (SyntaxError "TODO: other cases")
+  | Some TRUE -> tokens := List.drop !tokens 1; Ok (Lit (Bool true))
+  | Some FALSE -> tokens := List.drop !tokens 1; Ok (Lit (Bool false))
+  | Some MINUS -> (
+    match (List.hd (List.drop !tokens 1)) with
+    | Some NUM n -> tokens := List.drop !tokens 2; Ok (Lit (Num (~-. n)))
+    | _ -> Error (SyntaxError "cannot parse value (unused minus)")
+  )
+  | Some LPAREN -> tokens :=  List.drop !tokens 1; (
+    match (parse_value ()) with
+    | Ok v' -> (
+      match (List.hd !tokens) with
+      | Some RPAREN -> tokens := List.drop !tokens 1; Ok (VParen v')
+      | _ -> tokens := stack; Error (SyntaxError "cannot parse value (missing right paren)")
+    )
+    | _ -> tokens := stack; Error (SyntaxError "cannot parse value (unused left paren)")
+  )
+  | Some LAMBDA -> tokens :=  List.drop !tokens 1; (
+    print_tokens ();
+    match (parse_pattern ()) with
+    | Ok p -> (
+      match (List.hd !tokens) with
+      | Some DOT -> tokens := List.drop !tokens 1; (
+        match (parse_expr ()) with
+        | Ok e -> Ok (Lambda { params = p; body = e })
+        | _ -> tokens := stack; Error (SyntaxError "cannot parse value (missing func body)") 
+      )
+      | _ -> tokens := stack; Error (SyntaxError "cannot parse value (missing dot)") 
+    )
+    | _ -> tokens := stack; Error (SyntaxError "cannot parse value (unused lambda)")
+  )
+  | _ -> (
+    match (parse_dcon ()) with
+    | Ok dc -> (
+      match (List.hd !tokens) with 
+      | Some LPAREN -> tokens :=  List.drop !tokens 1; (
+          match (parse_value ()) with
+          | Ok v' -> (
+            match (List.hd !tokens) with
+            | Some RPAREN -> tokens := List.drop !tokens 1; Ok (VCon { vconstructor = dc; value = v' })
+            | _ -> tokens := stack; Error (SyntaxError "cannot parse value (missing right paren after dcon)")
+          )
+          | _ -> tokens := stack; Error (SyntaxError "cannot parse value (unused left paren after dcon)")
+      )
+      | _ -> tokens := stack; Error (SyntaxError "cannot parse value (unused dcon)")
+    )
+    | _ -> Error (SyntaxError "cannot parse value")
+  )
 
 (****
 --------parse expressions--------
@@ -231,10 +362,9 @@ precedence:
 - e1 and or e2
 - e1 , || e2
 ****)
-let rec parse_expr () =
+and parse_expr () =
   parse_expr_sequence ()
   (* TODO: *)
-  (* e -> case e1 ... *)
   (* e -> let b+ in e end *)
 
 (* e -> e1, e2 *)
@@ -417,14 +547,15 @@ and parse_expr_not () =
 (* e -> (e) *)
 (* e -> if e1 then e2 else e3 *)
 (* e -> [e1 e2] *)
+(* e -> case e1 | p => e2 *)
 and parse_expr_top () =
+  let stack = !tokens in
   match (parse_value ()) with
     | Ok value -> print_debug ("successfully parsed value " ^ show_value value); Ok (Value value)
     | _ -> (
       match (parse_variable ()) with
-      | Ok id -> print_debug ("successfully parsed variable " ^ show_id id); Ok (EVar id)
+      | Ok var -> print_debug ("successfully parsed variable " ^ show_id var); Ok (EVar var)
       | _ -> (
-        let stack = !tokens in
         match (List.hd !tokens) with
         | Some LPAREN -> tokens :=  List.drop !tokens 1; (
           match (parse_expr ()) with
@@ -479,11 +610,42 @@ and parse_expr_top () =
           | Ok t -> Ok (Typ2 t)
           | _ -> Error (SyntaxError "wtf")
         )
+        | Some CASE -> tokens := List.drop !tokens 1; (
+          match (parse_expr ()) with
+          | Ok e -> (
+            let cases = ref [] in
+            let is_looping = ref true in
+            let is_valid = ref true in
+            while !is_looping do
+              match (List.hd !tokens) with 
+              | Some BAR -> tokens := List.drop !tokens 1; (
+                match (parse_pattern ()) with
+                | Ok p -> (
+                  match (List.hd !tokens) with
+                  | Some ARROW -> tokens := List.drop !tokens 1; (
+                    match (parse_expr ()) with
+                    | Ok e' -> cases := {matchp = p; exp = e'}::!cases
+                    | _ -> is_looping := false; is_valid := false; (* case missing expression *)
+                  )
+                  | _ -> is_looping := false; is_valid := false; (* case missing arrow *)
+                )
+                | _ -> is_looping := false; is_valid := false;  (* case missing pattern *)
+                ;
+              )
+              | _ -> is_looping := false; (* no more cases *)
+              ;
+            done;
+            if (not !is_valid) || (List.length !cases = 0) 
+            then (tokens := stack; Error (SyntaxError "cannot parse expression (malformed case)"))
+            else Ok (Case { sum = e; branches = (List.rev !cases) })
+          )
+          | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused case)")
+        )
         | _ -> Error (SyntaxError "TODO: other cases")
       )
     )
 
-(* TODO: patterns, types, data types, bindings *)
+(* TODO: types, data types, bindings *)
 
 let parse_main () =
   let is_looping = ref true in
@@ -501,4 +663,4 @@ let parse_main () =
   done;
   if !is_valid then List.rev !result else [Value (Lit (Str "failed"))]
 
-let parse (tks : token list) = tokens := tks; parse_main ()
+let parse (tks : token list) = tokens := tks; print_tokens (); parse_main ()

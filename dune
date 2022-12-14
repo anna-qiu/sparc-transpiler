@@ -10,10 +10,6 @@
 
 (ocamllex lexer)
 
-; (menhir
-;  (flags (--explain --trace))
-;  (modules parser))
-
 (executables
  (names test)
  (libraries core)

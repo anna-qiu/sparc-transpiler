@@ -25,6 +25,7 @@ let show_token tok = let open Parser in
     | COLON -> "COLON"
     | COMMA -> "COMMA"
     | TO -> "TO"
+    | UNDERSCORE -> "UNDERSCORE"
 
     (* types *)
     | NAT -> "NAT"
@@ -40,6 +41,7 @@ let show_token tok = let open Parser in
     | TRUE -> "TRUE"
     | IN -> "IN"
     | TYPE -> "TYPE"
+    | DATATYPE -> "DATATYPE"
     | THEN -> "THEN"
     | PARA -> "PARA"
     | OF -> "OF"

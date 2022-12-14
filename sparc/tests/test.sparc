@@ -1,3 +1,5 @@
-{ Z -> B
-{ B * Z -> N * (Z * Z)
-{ alpha -> beta -> (alpha * (beta -> beta)) * (N -> N)
+10 + 15 * 20
+(-10 + 15) * -20
+10 = 10 or 5 > 7 and (true or false)
+1 / ((2 - (3 + 4)) * 5)
+false and not true

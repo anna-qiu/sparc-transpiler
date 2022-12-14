@@ -61,6 +61,7 @@ and pattern =
   | PVar of var
   | PPair of ppair
   | PCon of pcon
+  | PParen of pattern
 [@@deriving show { with_path = false }]
 
 and ppair =
@@ -73,7 +74,7 @@ and ppair =
 and pcon =
   {
     pconstructor : dcon;
-    pattern : pattern;
+    pattern : pattern option;
   }
 [@@deriving show { with_path = false }]
 

@@ -1,0 +1,35 @@
+[(Case
+    { sum = (EVar { name = "data" });
+      branches =
+      [{ matchp =
+         (PCon
+            { pconstructor = { name = "cons" };
+              pattern =
+              (Some (PPair
+                       { p1 = (PVar { name = "x" });
+                         p2 = (PVar { name = "y" }) }))
+              });
+         exp =
+         (Infix
+            { op = Times; e1 = (Value (Lit (Num 10.)));
+              e2 =
+              (EParen
+                 (Infix
+                    { op = Plus; e1 = (EVar { name = "x" });
+                      e2 = (EVar { name = "y" }) }))
+              })
+         };
+        { matchp =
+          (PCon
+             { pconstructor = { name = "single" };
+               pattern = (Some (PVar { name = "x" })) });
+          exp =
+          (Infix
+             { op = Times; e1 = (Value (Lit (Num 10.)));
+               e2 = (EVar { name = "x" }) })
+          };
+        { matchp = (PCon { pconstructor = { name = "nil" }; pattern = None });
+          exp = (Value (Lit (Num 1.))) }
+        ]
+      })
+  ]

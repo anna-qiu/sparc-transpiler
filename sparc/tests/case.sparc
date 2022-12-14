@@ -1,0 +1,4 @@
+case data
+| _cons(x, y) => 10 * (x + y)
+| _single(x) => 10 * x
+| _nil => 1

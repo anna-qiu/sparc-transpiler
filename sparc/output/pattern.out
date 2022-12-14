@@ -1,0 +1,56 @@
+[(EParen (EVar { name = "x" }));
+  (EParen
+     (Sequential
+        { first = (EVar { name = "y" });
+          second = (EParen (EVar { name = "x" })) }));
+  (EParen
+     (Sequential
+        { first =
+          (EParen
+             (Sequential
+                { first = (EVar { name = "x" });
+                  second = (EVar { name = "y" }) }));
+          second = (EParen (EVar { name = "z" })) }));
+  (Value
+     (VCon
+        { vconstructor = { name = "cons" };
+          value = (VPair { v1 = (Lit (Num 10.)); v2 = (Lit (Num 20.)) }) }));
+  (Value
+     (Lambda
+        { params = (PVar { name = "x" });
+          body =
+          (EParen
+             (Infix
+                { op = Plus; e1 = (EVar { name = "x" });
+                  e2 = (Value (Lit (Num 10.))) }))
+          }));
+  (Value
+     (Lambda
+        { params =
+          (PParen
+             (PPair
+                { p1 = (PVar { name = "a" });
+                  p2 =
+                  (PCon
+                     { pconstructor = { name = "cons" };
+                       pattern =
+                       (PPair
+                          { p1 = (PVar { name = "x" });
+                            p2 = (PVar { name = "y" }) })
+                       })
+                  }));
+          body =
+          (EParen
+             (Infix
+                { op = Plus;
+                  e1 =
+                  (Infix
+                     { op = Times; e1 = (EVar { name = "a" });
+                       e2 = (EVar { name = "x" }) });
+                  e2 =
+                  (Infix
+                     { op = Times; e1 = (EVar { name = "a" });
+                       e2 = (EVar { name = "y" }) })
+                  }))
+          }))
+  ]
