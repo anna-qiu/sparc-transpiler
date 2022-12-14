@@ -14,7 +14,8 @@
   (Value
      (VCon
         { vconstructor = { name = "cons" };
-          value = (VPair { v1 = (Lit (Num 10.)); v2 = (Lit (Num 20.)) }) }));
+          value =
+          (Some (VPair { v1 = (Lit (Num 10.)); v2 = (Lit (Num 20.)) })) }));
   (Value
      (Lambda
         { params = (PVar { name = "x" });
@@ -34,9 +35,9 @@
                   (PCon
                      { pconstructor = { name = "cons" };
                        pattern =
-                       (PPair
-                          { p1 = (PVar { name = "x" });
-                            p2 = (PVar { name = "y" }) })
+                       (Some (PPair
+                                { p1 = (PVar { name = "x" });
+                                  p2 = (PVar { name = "y" }) }))
                        })
                   }));
           body =

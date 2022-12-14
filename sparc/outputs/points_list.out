@@ -23,45 +23,59 @@
      (VCon
         { vconstructor = { name = "Cons" };
           value =
-          (VPair
-             { v1 =
-               (VCon
-                  { vconstructor = { name = "PointTwo" };
-                    value =
-                    (VPair { v1 = (Lit (Num 0.)); v2 = (Lit (Num 0.)) }) });
-               v2 =
-               (VCon
-                  { vconstructor = { name = "Cons" };
-                    value =
-                    (VPair
-                       { v1 =
-                         (VCon
-                            { vconstructor = { name = "PointTwo" };
-                              value =
-                              (VPair
-                                 { v1 = (Lit (Num 0.)); v2 = (Lit (Num 1.)) })
-                              });
-                         v2 =
-                         (VCon
-                            { vconstructor = { name = "Cons" };
-                              value =
-                              (VPair
-                                 { v1 =
-                                   (VCon
-                                      { vconstructor = { name = "PointTwo" };
-                                        value =
-                                        (VPair
-                                           { v1 = (Lit (Num 0.));
-                                             v2 = (Lit (Num 2.)) })
-                                        });
-                                   v2 =
-                                   (VCon
-                                      { vconstructor = { name = "Nil" };
-                                        value = VUnit })
-                                   })
-                              })
-                         })
-                    })
-               })
+          (Some (VPair
+                   { v1 =
+                     (VCon
+                        { vconstructor = { name = "PointTwo" };
+                          value =
+                          (Some (VPair
+                                   { v1 = (Lit (Num 0.)); v2 = (Lit (Num 0.))
+                                     }))
+                          });
+                     v2 =
+                     (VCon
+                        { vconstructor = { name = "Cons" };
+                          value =
+                          (Some (VPair
+                                   { v1 =
+                                     (VCon
+                                        { vconstructor =
+                                          { name = "PointTwo" };
+                                          value =
+                                          (Some (VPair
+                                                   { v1 = (Lit (Num 0.));
+                                                     v2 = (Lit (Num 1.)) }))
+                                          });
+                                     v2 =
+                                     (VCon
+                                        { vconstructor = { name = "Cons" };
+                                          value =
+                                          (Some (VPair
+                                                   { v1 =
+                                                     (VCon
+                                                        { vconstructor =
+                                                          { name = "PointTwo"
+                                                            };
+                                                          value =
+                                                          (Some (VPair
+                                                                   { v1 =
+                                                                    (Lit
+                                                                    (Num 0.));
+                                                                    v2 =
+                                                                    (
+                                                                    Lit
+                                                                    (Num 2.))
+                                                                    }))
+                                                          });
+                                                     v2 =
+                                                     (VCon
+                                                        { vconstructor =
+                                                          { name = "Nil" };
+                                                          value = None })
+                                                     }))
+                                          })
+                                     }))
+                          })
+                     }))
           }))
   ]

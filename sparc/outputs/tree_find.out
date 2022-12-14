@@ -25,7 +25,7 @@
                [{ matchp =
                   (PCon
                      { pconstructor = { name = "Leaf" };
-                       pattern = (PVar { name = "y" }) });
+                       pattern = (Some (PVar { name = "y" })) });
                   exp =
                   (Infix
                      { op = Equals; e1 = (EVar { name = "x" });
@@ -35,14 +35,14 @@
                    (PCon
                       { pconstructor = { name = "Node" };
                         pattern =
-                        (PPair
-                           { p1 = (PVar { name = "y" });
-                             p2 =
-                             (PParen
-                                (PPair
-                                   { p1 = (PVar { name = "left" });
-                                     p2 = (PVar { name = "right" }) }))
-                             })
+                        (Some (PPair
+                                 { p1 = (PVar { name = "y" });
+                                   p2 =
+                                   (PParen
+                                      (PPair
+                                         { p1 = (PVar { name = "left" });
+                                           p2 = (PVar { name = "right" }) }))
+                                   }))
                         });
                    exp =
                    (If

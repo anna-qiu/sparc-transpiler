@@ -1,2 +1,3 @@
-type option = _None | _Some of N
-type intOption = _INone | _ISome of Z | _IOther of Z * Z
+_cons(x, y) = (10, 20)
+_cons = _cons()
+_cons() = _cons(10)

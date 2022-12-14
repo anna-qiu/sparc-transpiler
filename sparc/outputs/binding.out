@@ -8,8 +8,9 @@
           (PCon
              { pconstructor = { name = "cons" };
                pattern =
-               (PPair
-                  { p1 = (PVar { name = "x" }); p2 = (PVar { name = "y" }) })
+               (Some (PPair
+                        { p1 = (PVar { name = "x" });
+                          p2 = (PVar { name = "y" }) }))
                });
           bind_exp =
           (Value

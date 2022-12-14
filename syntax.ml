@@ -76,7 +76,7 @@ and ppair =
 and pcon =
   {
     pconstructor : dcon;
-    pattern : pattern;
+    pattern : pattern option;
   }
 [@@deriving show { with_path = false }]
 
@@ -110,7 +110,7 @@ and vpair =
 and vcon =
   {
     vconstructor : dcon;
-    value : value
+    value : value option
   }
 [@@deriving show { with_path = false }]
 

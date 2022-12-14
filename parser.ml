@@ -98,7 +98,7 @@ let parse_dcon () =
 (****
 --------parse patterns--------
 precedence:
-- x, (), (p), dcon(p)
+- x, (), (p), dcon(p), dcon(), dcon
 - p1, p2
 ****)
 let rec parse_pattern () =
@@ -121,8 +121,7 @@ and parse_pattern_pair () =
 
 (* p -> x *)
 (* p -> (p) *)
-(* p -> dcon *)
-(* p -> dcon(p) *)
+(* p -> dcon(p) or dcon() or dcon *)
 and parse_pattern_top () =
   let stack = !tokens in
   match (parse_variable ()) with
@@ -147,15 +146,19 @@ and parse_pattern_top () =
       | Ok dc -> (
         match (List.hd !tokens) with
         | Some LPAREN -> tokens :=  List.drop !tokens 1; (
-          match (parse_pattern ()) with
-          | Ok p' -> (
-            match (List.hd !tokens) with
-            | Some RPAREN -> tokens := List.drop !tokens 1; Ok (PCon { pconstructor = dc; pattern = p' })
-            | _ -> tokens := stack; Error (SyntaxError "cannot parse pattern (missing right paren after dcon)")
+          match (List.hd !tokens) with
+          | Some RPAREN -> tokens := List.drop !tokens 1; Ok (PCon { pconstructor = dc; pattern = Some PUnit })
+          | _ -> (
+            match (parse_pattern ()) with
+            | Ok p' -> (
+              match (List.hd !tokens) with
+              | Some RPAREN -> tokens := List.drop !tokens 1; Ok (PCon { pconstructor = dc; pattern = Some p' })
+              | _ -> tokens := stack; Error (SyntaxError "cannot parse pattern (missing right paren after dcon)")
+            )
+            | _ -> tokens := stack; Error (SyntaxError "cannot parse pattern (unused left paren after dcon)")
           )
-          | _ -> tokens := stack; Error (SyntaxError "cannot parse pattern (unused left paren after dcon)")
         )
-        | _ -> Ok (PCon { pconstructor = dc; pattern = PUnit })
+        | _ -> Ok (PCon { pconstructor = dc; pattern = None })
       )
       | _ -> Error (SyntaxError "cannot parse pattern")
     )
@@ -289,7 +292,7 @@ and parse_datatype_recur () =
 (****
 --------parse values--------
 precedence:
-- numbers, booleans, (), (v), dcon(v) lambda p.e
+- numbers, booleans, (), (v), dcon(v), dcon(), dcon, lambda p.e
 - v1, v2
 ****)
 let rec parse_value () = 
@@ -314,7 +317,7 @@ and parse_value_pair () =
 (* v -> booleans *)
 (* v -> (v) *)
 (* v -> lambda p.e *)
-(* v -> dcon(v) *)
+(* v -> dcon(v) or dcon() or dcon *)
 and parse_value_top () = 
   let stack = !tokens in
   match (List.hd !tokens) with
@@ -357,16 +360,20 @@ and parse_value_top () =
     match (parse_dcon ()) with
     | Ok dc -> (
       match (List.hd !tokens) with 
-      | Some LPAREN -> tokens :=  List.drop !tokens 1; (
-          match (parse_value ()) with
-          | Ok v' -> (
-            match (List.hd !tokens) with
-            | Some RPAREN -> tokens := List.drop !tokens 1; Ok (VCon { vconstructor = dc; value = v' })
-            | _ -> tokens := stack; Error (SyntaxError "cannot parse value (missing right paren after dcon)")
+      | Some LPAREN -> tokens := List.drop !tokens 1; (
+          match (List.hd !tokens) with
+          | Some RPAREN -> tokens := List.drop !tokens 1; Ok (VCon { vconstructor = dc; value = Some VUnit })
+          | _ -> (
+            match (parse_value ()) with
+            | Ok v' -> (
+              match (List.hd !tokens) with
+              | Some RPAREN -> tokens := List.drop !tokens 1; Ok (VCon { vconstructor = dc; value = Some v' })
+              | _ -> tokens := stack; Error (SyntaxError "cannot parse value (missing right paren after dcon)")
+            )
+            | _ -> tokens := stack; Error (SyntaxError "cannot parse value (unused left paren after dcon)")
           )
-          | _ -> tokens := stack; Error (SyntaxError "cannot parse value (unused left paren after dcon)")
       )
-      | _ -> Ok (VCon { vconstructor = dc; value = VUnit })
+      | _ -> Ok (VCon { vconstructor = dc; value = None })
     )
     | _ -> tokens := stack; Error (SyntaxError "cannot parse value")
   )
@@ -635,6 +642,7 @@ and parse_expr_not () =
 (* e -> if e1 then e2 else e3 *)
 (* e -> [e1 e2] *)
 (* e -> case e1 | p => e2 *)
+(* e -> let b+ in e end *)
 and parse_expr_top () =
   let stack = !tokens in
   match (parse_binding ()) with
