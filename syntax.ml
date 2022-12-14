@@ -38,7 +38,7 @@ and dtyp = typeable list
 
 and typeable =
   { id : id;
-    typ : typ;
+    typ : typ option;
   }
 [@@deriving show { with_path = false }]
 
