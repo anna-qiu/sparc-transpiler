@@ -32,4 +32,8 @@ let () =
   let fname = (Sys.get_argv ()).(1) in
   let tokens = gen_tokens fname in
   (* i think this is how you call the parser? i'm not sure what the type of the functions are *)
-  print_endline (Syntax.show_main (Parser.parse tokens));
+  let ast = Parser.parse tokens in
+  print_endline (Syntax.show_main ast);
+  (* print the sml translation *)
+  print_endline (Codegen.codegen ast);
+

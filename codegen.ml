@@ -55,14 +55,26 @@ let rec join_list ~(joiner : string) : string list list -> string list = functio
   | [x ; y] -> join ~joiner x y
   | hd :: tl -> join ~joiner hd (join_list ~joiner tl)
 
+let parenthesize code = code |> prefix ~prefix:"(" |> suffix ~suffix:")"
+
 let gen_var { name : string } : string = name
 let gen_dcon { name : string } : string = name
 let gen_tycon { name : string } : string = name
 let gen_un_op (op : un_op) : string = String.lowercase (show_un_op op)
 let gen_bin_op (op : bin_op) : string = String.lowercase (show_bin_op op)
+let gen_infix_op : bin_op -> string = function
+  | Plus -> "+"
+  | Minus -> "-"
+  | Times -> "*"
+  | Divide -> "div"
+  | Less -> "<"
+  | Greater -> ">"
+  | Equals -> "="
+  | Or -> "orelse"
+  | And -> "andalso"
 
 let rec gen_typ : typ -> string list = function
-  | TParen typ -> gen_typ typ |> prefix ~prefix:"(" |> suffix ~suffix:")"
+  | TParen typ -> gen_typ typ |> parenthesize
   | Func { domain ; codomain } ->
       join ~joiner:"->"
       (gen_typ domain)
@@ -94,46 +106,52 @@ and gen_pattern ?(add_parens = true) : pattern -> string list = function
       | p1', p2' -> join ~joiner:", " ~with_space:false p1' p2')
       |> fun lst -> 
           if add_parens
-          then lst |> prefix ~prefix:"(" |> suffix ~suffix:")"
+          then lst |> parenthesize
           else lst
   | PCon { pconstructor ; pattern } -> 
       let con = gen_dcon pconstructor in
-      let vals = gen_pattern ~add_parens:false pattern 
-                 |> prefix ~prefix:"(" |> suffix ~suffix:")" 
-      in
+      let vals = gen_pattern ~add_parens:false pattern |> parenthesize in
       (match List.length vals with
-      | 0 -> failwith "pcon: should never have an empty value list"
+      | 0 -> [ con ]
       | _ -> combine con vals)
-  | PParen p -> gen_pattern ~add_parens:false p 
-                |> prefix ~prefix:"(" |> suffix ~suffix:")"
+  | PParen p -> gen_pattern ~add_parens:false p |> parenthesize
   | PUnit -> [ "()" ]
 
 and gen_value ?(add_parens = true) : value -> string list = function
-  | VParen v -> gen_value ~add_parens:false v 
-                |> prefix ~prefix:"(" |> suffix ~suffix:")"
+  | VParen v -> gen_value ~add_parens:false v |> parenthesize
   | Lit (Str s) -> [ s ]
   | Lit (Bool b) -> [ Bool.to_string b ]
-  | Lit (Num n) -> [ Float.to_string n ]
+  | Lit (Num n) -> 
+      if Float.is_integer n
+      then 
+        let n = Float.to_int n in
+        let abs = Int.abs n |> Int.to_string in
+        if Int.is_negative n then [ "~" ^ abs ] else [ abs ]
+      else
+        let abs = Float.abs n |> Float.to_string in
+        if Float.is_negative n then [ "~" ^ abs ] else [ abs ]
   | UnOp op -> [ gen_un_op op ]
   | BinOp op -> [ gen_bin_op op ]
   | VPair { v1 ; v2 } -> 
       (match gen_value v1, gen_value v2 with
       | ([], _ | _, []) -> failwith "vpair: should never have empty value lists"
       | v1', v2' -> join ~joiner:", " ~with_space:false v1' v2')
+      |> fun lst -> 
+          if add_parens
+          then lst |> parenthesize
+          else lst
   | VCon { vconstructor ; value } -> 
       let con = gen_dcon vconstructor in
-      let vals = gen_value ~add_parens:false value 
-                 |> prefix ~prefix:"(" |> suffix ~suffix:")" 
-      in
+      let vals = gen_value ~add_parens:false value |> parenthesize in
       combine con vals
   | Lambda { params ; body } -> 
-      let header = gen_pattern ~add_parens:false params |> prefix ~prefix:"fn (" |> suffix ~suffix:") =>" in
+      let header = gen_pattern ~add_parens:false params 
+                   |> prefix ~prefix:"fn " 
+                   |> suffix ~suffix:" =>" 
+      in
       (match header with
       | [] -> failwith "lambda: should never have an empty header list"
-      | lst -> 
-          join ~joiner:" " ~with_space:false 
-          header 
-          (gen_expression body))
+      | _ -> join ~joiner:" " ~with_space:false header (gen_expression body))
   | VUnit -> [ "()" ]
 
 and gen_binding : binding -> string list = function
@@ -162,11 +180,11 @@ and gen_binding : binding -> string list = function
       combine name dtyp
 
 and gen_expression : expression -> string list = function
-  | EParen e -> gen_expression e |> prefix ~prefix:"(" |> suffix ~suffix:")"
+  | EParen e -> gen_expression e |> parenthesize
   | EVar { name } -> [ name ]
   | Value v -> gen_value v
   | Infix { op ; e1 ; e2 } -> 
-      join ~joiner:(gen_bin_op op)
+      join ~joiner:(gen_infix_op op)
       (gen_expression e1)
       (gen_expression e2)
   | Unary { unary_op ; e } ->
@@ -177,14 +195,16 @@ and gen_expression : expression -> string list = function
       (gen_expression second)
   | Parallel { left ; right } ->
       let left' = gen_expression left 
+                  |> parenthesize
                   |> prefix ~prefix:"fn () => "
       in
       let right' = gen_expression right 
+                   |> parenthesize
                    |> prefix ~prefix:"fn () => "
       in
       join ~joiner:", " ~with_space:false left' right'
-      |> prefix ~prefix:"Primitivies.par ("
-      |> suffix ~suffix:")"
+      |> parenthesize
+      |> prefix ~prefix:"Primitivies.par "
   | Case { sum ; branches } ->
       let gen_branch ({ matchp ; exp } : case_branch) : string list = 
         join ~joiner:"=>" 
@@ -206,13 +226,19 @@ and gen_expression : expression -> string list = function
       header @ branches'
   | If { guard ; then_branch ; else_branch } -> 
       let guard' = gen_expression guard |> prefix ~prefix:"if " in
-      let then_branch' = gen_expression then_branch |> prefix ~prefix:"then " in
-      let else_branch' = gen_expression else_branch |> prefix ~prefix:"else " in
+      let then_branch' = gen_expression then_branch 
+                         |> prefix ~prefix:"then " 
+                         |> indent 
+      in
+      let else_branch' = gen_expression else_branch 
+                         |> prefix ~prefix:"else " 
+                         |> indent 
+      in
       guard' @ then_branch' @ else_branch'
   | App { func ; arg } ->
       join ~joiner:" " ~with_space:false
       (gen_expression func)
-      (gen_expression arg)
+      (gen_expression arg |> parenthesize)
   | LocalBinding { bindings ; usage } ->
       let bindings' = List.map ~f:gen_binding bindings 
                       |> List.concat 
@@ -223,6 +249,15 @@ and gen_expression : expression -> string list = function
   | GlobalBinding binding -> gen_binding binding
   | Typ2 _ -> failwith "idk what this is (yet)"
 
-let codegen (main : main) : string list = 
+(* current does nothing, should enforce the char limit *)
+(* probably needs a helper function to find the indent depth of a line *)
+(* maybe parenmatch-ish thing to remove unnecessary parenthesis *)
+let prettify : string list -> string list = function
+  | [] -> []
+  | code -> code
+
+let codegen (main : main) : string = 
   List.map ~f:gen_expression main 
   |> List.concat
+  |> prettify
+  |> String.concat ~sep:"\n"
