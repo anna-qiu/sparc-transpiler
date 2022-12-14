@@ -62,6 +62,7 @@ let gen_un_op (op : un_op) : string = String.lowercase (show_un_op op)
 let gen_bin_op (op : bin_op) : string = String.lowercase (show_bin_op op)
 
 let rec gen_typ : typ -> string list = function
+  | TParen typ -> gen_typ typ |> prefix ~prefix:"(" |> suffix ~suffix:")"
   | Func { domain ; codomain } ->
       join ~joiner:"->"
       (gen_typ domain)
@@ -72,6 +73,7 @@ let rec gen_typ : typ -> string list = function
   | Nat -> [ "int" ]
   | Int -> [ "int" ]
   | Boolean -> [ "bool" ]
+  | TUnit -> [ "unit" ]
 
 and gen_dtyp (dl : dtyp) : string list = 
   List.map ~f:(fun { id ; typ } -> 
@@ -102,8 +104,13 @@ and gen_pattern ?(add_parens = true) : pattern -> string list = function
       (match List.length vals with
       | 0 -> failwith "pcon: should never have an empty value list"
       | _ -> combine con vals)
+  | PParen p -> gen_pattern ~add_parens:false p 
+                |> prefix ~prefix:"(" |> suffix ~suffix:")"
+  | PUnit -> [ "()" ]
 
 and gen_value ?(add_parens = true) : value -> string list = function
+  | VParen v -> gen_value ~add_parens:false v 
+                |> prefix ~prefix:"(" |> suffix ~suffix:")"
   | Lit (Str s) -> [ s ]
   | Lit (Bool b) -> [ Bool.to_string b ]
   | Lit (Num n) -> [ Float.to_string n ]
@@ -127,6 +134,7 @@ and gen_value ?(add_parens = true) : value -> string list = function
           join ~joiner:" " ~with_space:false 
           header 
           (gen_expression body))
+  | VUnit -> [ "()" ]
 
 and gen_binding : binding -> string list = function
   | FBind { func_name ; func_args ; func_body } -> 
@@ -154,12 +162,15 @@ and gen_binding : binding -> string list = function
       combine name dtyp
 
 and gen_expression : expression -> string list = function
+  | EParen e -> gen_expression e |> prefix ~prefix:"(" |> suffix ~suffix:")"
   | EVar { name } -> [ name ]
   | Value v -> gen_value v
   | Infix { op ; e1 ; e2 } -> 
       join ~joiner:(gen_bin_op op)
       (gen_expression e1)
       (gen_expression e2)
+  | Unary { unary_op ; e } ->
+      combine (gen_un_op unary_op) (gen_expression e)
   | Sequential { first ; second } ->
       join ~joiner:", " ~with_space:false
       (gen_expression first)
@@ -202,14 +213,15 @@ and gen_expression : expression -> string list = function
       join ~joiner:" " ~with_space:false
       (gen_expression func)
       (gen_expression arg)
-  | Bindings { bindings ; usage } ->
+  | LocalBinding { bindings ; usage } ->
       let bindings' = List.map ~f:gen_binding bindings 
                       |> List.concat 
                       |> indent_all 
       in
       let usage' = gen_expression usage |> indent_all in
       ["let"] @ bindings' @ ["in"] @ usage' @ ["end"]
-  | TopLevelBinding binding -> gen_binding binding
+  | GlobalBinding binding -> gen_binding binding
+  | Typ2 _ -> failwith "idk what this is (yet)"
 
 let codegen (main : main) : string list = 
   List.map ~f:gen_expression main 
