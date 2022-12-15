@@ -11,7 +11,8 @@
 (ocamllex lexer)
 
 (executables
- (names test)
- (libraries core)
- (preprocess
-  (pps ppx_deriving.show)))
+  (names test transpile)
+  (modes exe js)
+  (libraries core js_of_ocaml)
+  (preprocess
+    (pps ppx_deriving.show js_of_ocaml-ppx)))
