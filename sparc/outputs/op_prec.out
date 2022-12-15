@@ -55,3 +55,8 @@
      { op = And; e1 = (Value (Lit (Bool false)));
        e2 = (Unary { unary_op = Not; e = (Value (Lit (Bool true))) }) })
   ]
+10 + 15 * 20
+(~10 + 15) * ~20
+10 = 10 orelse 5 > 7 andalso (true orelse false)
+1 div ((2 - (3 + 4)) * 5)
+false andalso not true

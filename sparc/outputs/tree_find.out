@@ -2,14 +2,16 @@
     (DBind
        { dtyp_name = { name = "tree" };
          bind_dty =
-         [{ id = { name = "Leaf" }; typ = Int };
+         [{ id = { name = "Leaf" }; typ = (Some Int) };
            { id = { name = "Node" };
              typ =
-             (Prod
-                [Int;
-                  (TParen
-                     (Prod [(Typ { name = "tree" }); (Typ { name = "tree" })]))
-                  ])
+             (Some (Prod
+                      [Int;
+                        (TParen
+                           (Prod
+                              [(Typ { name = "tree" });
+                                (Typ { name = "tree" })]))
+                        ]))
              }
            ]
          }));
@@ -20,7 +22,7 @@
           (PPair { p1 = (PVar { name = "t" }); p2 = (PVar { name = "x" }) });
           func_body =
           (Case
-             { sum = (EVar { name = "t" });
+             { sum = (Value (VVar { name = "t" }));
                branches =
                [{ matchp =
                   (PCon
@@ -28,8 +30,8 @@
                        pattern = (Some (PVar { name = "y" })) });
                   exp =
                   (Infix
-                     { op = Equals; e1 = (EVar { name = "x" });
-                       e2 = (EVar { name = "y" }) })
+                     { op = Equals; e1 = (Value (VVar { name = "x" }));
+                       e2 = (Value (VVar { name = "y" })) })
                   };
                  { matchp =
                    (PCon
@@ -48,32 +50,35 @@
                    (If
                       { guard =
                         (Infix
-                           { op = Equals; e1 = (EVar { name = "x" });
-                             e2 = (EVar { name = "y" }) });
+                           { op = Equals; e1 = (Value (VVar { name = "x" }));
+                             e2 = (Value (VVar { name = "y" })) });
                         then_branch = (Value (Lit (Bool true)));
                         else_branch =
                         (If
                            { guard =
                              (Infix
-                                { op = Less; e1 = (EVar { name = "x" });
-                                  e2 = (EVar { name = "y" }) });
+                                { op = Less;
+                                  e1 = (Value (VVar { name = "x" }));
+                                  e2 = (Value (VVar { name = "y" })) });
                              then_branch =
                              (App
-                                { func = (EVar { name = "find" });
+                                { func = (Value (VVar { name = "find" }));
                                   arg =
-                                  (EParen
-                                     (Sequential
-                                        { first = (EVar { name = "left" });
-                                          second = (EVar { name = "x" }) }))
+                                  (Value
+                                     (VParen
+                                        (VPair
+                                           { v1 = (VVar { name = "left" });
+                                             v2 = (VVar { name = "x" }) })))
                                   });
                              else_branch =
                              (App
-                                { func = (EVar { name = "find" });
+                                { func = (Value (VVar { name = "find" }));
                                   arg =
-                                  (EParen
-                                     (Sequential
-                                        { first = (EVar { name = "right" });
-                                          second = (EVar { name = "x" }) }))
+                                  (Value
+                                     (VParen
+                                        (VPair
+                                           { v1 = (VVar { name = "right" });
+                                             v2 = (VVar { name = "x" }) })))
                                   })
                              })
                         })
@@ -82,3 +87,11 @@
                })
           }))
   ]
+type tree = Leaf of int | Node of int * (tree * tree)
+fun find (t, x) = case t of
+  Leaf (y) => x = y
+| Node (y, (left, right)) => if x = y
+    then true
+    else if x < y
+      then find ((left, x))
+      else find ((right, x))

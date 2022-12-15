@@ -1,16 +1,17 @@
-[(EParen (EVar { name = "x" }));
-  (EParen
-     (Sequential
-        { first = (EVar { name = "y" });
-          second = (EParen (EVar { name = "x" })) }));
-  (EParen
-     (Sequential
-        { first =
-          (EParen
-             (Sequential
-                { first = (EVar { name = "x" });
-                  second = (EVar { name = "y" }) }));
-          second = (EParen (EVar { name = "z" })) }));
+[(Value (VParen (VVar { name = "x" })));
+  (Value
+     (VParen
+        (VPair
+           { v1 = (VVar { name = "y" }); v2 = (VParen (VVar { name = "x" }))
+             })));
+  (Value
+     (VParen
+        (VPair
+           { v1 =
+             (VParen
+                (VPair
+                   { v1 = (VVar { name = "x" }); v2 = (VVar { name = "y" }) }));
+             v2 = (VParen (VVar { name = "z" })) })));
   (Value
      (VCon
         { vconstructor = { name = "cons" };
@@ -22,7 +23,7 @@
           body =
           (EParen
              (Infix
-                { op = Plus; e1 = (EVar { name = "x" });
+                { op = Plus; e1 = (Value (VVar { name = "x" }));
                   e2 = (Value (Lit (Num 10.))) }))
           }));
   (Value
@@ -46,12 +47,18 @@
                 { op = Plus;
                   e1 =
                   (Infix
-                     { op = Times; e1 = (EVar { name = "a" });
-                       e2 = (EVar { name = "x" }) });
+                     { op = Times; e1 = (Value (VVar { name = "a" }));
+                       e2 = (Value (VVar { name = "x" })) });
                   e2 =
                   (Infix
-                     { op = Times; e1 = (EVar { name = "a" });
-                       e2 = (EVar { name = "y" }) })
+                     { op = Times; e1 = (Value (VVar { name = "a" }));
+                       e2 = (Value (VVar { name = "y" })) })
                   }))
           }))
   ]
+(x)
+(y, (x))
+((x, y), (z))
+cons (10, 20)
+fn x => (x + 10)
+fn (a, cons (x, y)) => (a * x + a * y)

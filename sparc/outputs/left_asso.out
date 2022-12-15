@@ -13,3 +13,5 @@
             e2 = (Value (Lit (Num 20.))) });
        e2 = (Value (Lit (Num 15.))) })
   ]
+false orelse true andalso false
+10 - 20 + 15

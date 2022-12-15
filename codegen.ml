@@ -122,6 +122,7 @@ and gen_pattern ?(add_parens = true) : pattern -> string list = function
 
 and gen_value ?(add_parens = true) : value -> string list = function
   | VParen v -> gen_value ~add_parens:false v |> parenthesize
+  | VVar { name } -> [ name ]
   | Lit (Str s) -> [ s ]
   | Lit (Bool b) -> [ Bool.to_string b ]
   | Lit (Num n) -> 
@@ -189,7 +190,6 @@ and gen_binding : binding -> string list = function
 
 and gen_expression : expression -> string list = function
   | EParen e -> gen_expression e |> parenthesize
-  | EVar { name } -> [ name ]
   | Value v -> gen_value v
   | Infix { op ; e1 ; e2 } -> 
       join ~joiner:(gen_infix_op op)

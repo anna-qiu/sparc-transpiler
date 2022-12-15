@@ -1,55 +1,76 @@
 [(If
-    { guard = (Value (Lit (Bool true))); then_branch = (EVar { name = "a" });
-      else_branch = (EVar { name = "b" }) });
+    { guard = (Value (Lit (Bool true)));
+      then_branch = (Value (VVar { name = "a" }));
+      else_branch = (Value (VVar { name = "b" })) });
   (If
      { guard =
        (Infix
-          { op = Less; e1 = (EVar { name = "a" }); e2 = (EVar { name = "b" })
-            });
+          { op = Less; e1 = (Value (VVar { name = "a" }));
+            e2 = (Value (VVar { name = "b" })) });
        then_branch =
        (If
           { guard =
             (Infix
-               { op = Less; e1 = (EVar { name = "a" });
-                 e2 = (EVar { name = "c" }) });
-            then_branch = (EVar { name = "a" });
-            else_branch = (EVar { name = "c" }) });
-       else_branch = (EVar { name = "b" }) });
+               { op = Less; e1 = (Value (VVar { name = "a" }));
+                 e2 = (Value (VVar { name = "c" })) });
+            then_branch = (Value (VVar { name = "a" }));
+            else_branch = (Value (VVar { name = "c" })) });
+       else_branch = (Value (VVar { name = "b" })) });
   (If
      { guard =
        (Infix
-          { op = Less; e1 = (EVar { name = "a" }); e2 = (EVar { name = "b" })
-            });
-       then_branch = (EVar { name = "a" });
+          { op = Less; e1 = (Value (VVar { name = "a" }));
+            e2 = (Value (VVar { name = "b" })) });
+       then_branch = (Value (VVar { name = "a" }));
        else_branch =
        (If
           { guard =
             (Infix
-               { op = Less; e1 = (EVar { name = "b" });
-                 e2 = (EVar { name = "c" }) });
-            then_branch = (EVar { name = "b" });
-            else_branch = (EVar { name = "c" }) })
+               { op = Less; e1 = (Value (VVar { name = "b" }));
+                 e2 = (Value (VVar { name = "c" })) });
+            then_branch = (Value (VVar { name = "b" }));
+            else_branch = (Value (VVar { name = "c" })) })
        });
   (If
      { guard =
        (Infix
-          { op = Less; e1 = (EVar { name = "a" }); e2 = (EVar { name = "b" })
-            });
+          { op = Less; e1 = (Value (VVar { name = "a" }));
+            e2 = (Value (VVar { name = "b" })) });
        then_branch =
        (If
           { guard =
             (Infix
-               { op = Less; e1 = (EVar { name = "a" });
-                 e2 = (EVar { name = "c" }) });
-            then_branch = (EVar { name = "a" });
-            else_branch = (EVar { name = "c" }) });
+               { op = Less; e1 = (Value (VVar { name = "a" }));
+                 e2 = (Value (VVar { name = "c" })) });
+            then_branch = (Value (VVar { name = "a" }));
+            else_branch = (Value (VVar { name = "c" })) });
        else_branch =
        (If
           { guard =
             (Infix
-               { op = Less; e1 = (EVar { name = "b" });
-                 e2 = (EVar { name = "c" }) });
-            then_branch = (EVar { name = "b" });
-            else_branch = (EVar { name = "c" }) })
+               { op = Less; e1 = (Value (VVar { name = "b" }));
+                 e2 = (Value (VVar { name = "c" })) });
+            then_branch = (Value (VVar { name = "b" }));
+            else_branch = (Value (VVar { name = "c" })) })
        })
   ]
+if true
+then a
+else b
+if a < b
+then if a < c
+  then a
+  else c
+else b
+if a < b
+then a
+else if b < c
+  then b
+  else c
+if a < b
+then if a < c
+  then a
+  else c
+else if b < c
+  then b
+  else c

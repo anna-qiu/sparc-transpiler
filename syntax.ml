@@ -82,6 +82,7 @@ and pcon =
 
 and value = 
   | VParen of value
+  | VVar of var
   | Lit of lit
   | UnOp of un_op
   | BinOp of bin_op
@@ -123,7 +124,6 @@ and lambda =
 
 and expression =
   | EParen of expression
-  | EVar of var
   | Value of value
   | Infix of infix
   | Unary of unary

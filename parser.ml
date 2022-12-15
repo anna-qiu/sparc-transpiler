@@ -170,7 +170,6 @@ precedence:
 - N, Z, B, (T), tycon
 - T * T * ...
 - T -> T
-- TODO: dty???
 ****)
 let rec parse_type () = 
   parse_type_arrow ()
@@ -292,7 +291,7 @@ and parse_datatype_recur () =
 (****
 --------parse values--------
 precedence:
-- numbers, booleans, (), (v), dcon(v), dcon(), dcon, lambda p.e
+- numbers, booleans, x, (), (v), dcon(v), dcon(), dcon, lambda p.e
 - v1, v2
 ****)
 let rec parse_value () = 
@@ -318,6 +317,7 @@ and parse_value_pair () =
 (* v -> (v) *)
 (* v -> lambda p.e *)
 (* v -> dcon(v) or dcon() or dcon *)
+(* v -> x *)
 and parse_value_top () = 
   let stack = !tokens in
   match (List.hd !tokens) with
@@ -375,7 +375,10 @@ and parse_value_top () =
       )
       | _ -> Ok (VCon { vconstructor = dc; value = None })
     )
-    | _ -> tokens := stack; Error (SyntaxError "cannot parse value")
+    | _ -> (match (parse_variable ()) with
+      | Ok v -> Ok (VVar v)
+      | _ -> tokens := stack; Error (SyntaxError "cannot parse value")
+    )
   )
 
 (****
@@ -447,7 +450,7 @@ and parse_binding () =
 (****
 --------parse expressions--------
 precedence:
-- x, v, (e), case, let in end, if then else, [e1 e2], global bindings
+- v, (e), case, let in end, if then else, [e1 e2], global bindings
 - not e1
 - e1 * / e2
 - e1 + - e2
@@ -457,8 +460,6 @@ precedence:
 ****)
 and parse_expr () =
   parse_expr_sequence ()
-  (* TODO: *)
-  (* e -> let b+ in e end *)
 
 (* e -> e1, e2 *)
 (* e -> e1 || e2 *)
@@ -637,7 +638,6 @@ and parse_expr_not () =
 
 (* e -> b *)
 (* e -> v *)
-(* e -> x *)
 (* e -> (e) *)
 (* e -> if e1 then e2 else e3 *)
 (* e -> [e1 e2] *)
@@ -651,9 +651,9 @@ and parse_expr_top () =
       match (parse_value ()) with
       | Ok value -> print_debug ("successfully parsed value " ^ show_value value); Ok (Value value)
       | _ -> (
-        match (parse_variable ()) with
+        (* match (parse_variable ()) with
         | Ok var -> print_debug ("successfully parsed variable " ^ show_id var); Ok (EVar var)
-        | _ -> (
+        | _ -> ( *)
           match (List.hd !tokens) with
           | Some LPAREN -> tokens :=  List.drop !tokens 1; (
             match (parse_expr ()) with
@@ -751,7 +751,11 @@ and parse_expr_top () =
               match (List.hd !tokens) with
               | Some IN -> tokens := List.drop !tokens 1; (
                 match (parse_expr ()) with
-                | Ok e -> Ok (LocalBinding { bindings = List.rev !bindings; usage = e})
+                | Ok e -> (
+                  match (List.hd !tokens) with
+                  | Some END -> tokens := List.drop !tokens 1; Ok (LocalBinding { bindings = List.rev !bindings; usage = e})
+                  | _ -> Error (SyntaxError "cannot parse expression (missing end)")
+                )
                 | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (invalid binding result)")
               )
               | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (invalid binding or missing in)")
@@ -759,12 +763,9 @@ and parse_expr_top () =
             | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused let)")
           )
           | _ -> Error (SyntaxError "other cases")
-        )
+        (* ) *)
       )
     )
-  
-
-(* TODO: types, data types, bindings *)
 
 let parse_main () =
   let is_looping = ref true in

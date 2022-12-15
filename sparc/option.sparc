@@ -1,3 +1,0 @@
-datatype option = None | Some of N
-
-datatype intOption = INone | ISome of Z

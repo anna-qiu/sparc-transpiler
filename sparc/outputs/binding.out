@@ -22,9 +22,11 @@
           bind_dty =
           [{ id = { name = "cons" };
              typ =
-             (TParen (Prod [(Typ { name = "a" }); (Typ { name = "b" })])) };
-            { id = { name = "nils" }; typ = TUnit };
-            { id = { name = "single" }; typ = Nat }]
+             (Some (TParen
+                      (Prod [(Typ { name = "a" }); (Typ { name = "b" })])))
+             };
+            { id = { name = "nils" }; typ = (Some TUnit) };
+            { id = { name = "single" }; typ = (Some Nat) }]
           }));
   (GlobalBinding
      (TBind
@@ -36,7 +38,12 @@
           (PPair { p1 = (PVar { name = "x" }); p2 = (PVar { name = "y" }) });
           func_body =
           (Infix
-             { op = Plus; e1 = (EVar { name = "x" });
-               e2 = (EVar { name = "y" }) })
+             { op = Plus; e1 = (Value (VVar { name = "x" }));
+               e2 = (Value (VVar { name = "y" })) })
           }))
   ]
+val a = ~12
+val cons (x, y) = (10, 20)
+type list = cons of (a * b) | nils of unit | single of int
+type tree = list
+fun sum (x, y) = x + y

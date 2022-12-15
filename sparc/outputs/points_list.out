@@ -2,8 +2,9 @@
     (DBind
        { dtyp_name = { name = "point" };
          bind_dty =
-         [{ id = { name = "PointTwo" }; typ = (Prod [Int; Int]) };
-           { id = { name = "Point3D" }; typ = (Prod [Int; Int; Int]) }]
+         [{ id = { name = "PointTwo" }; typ = (Some (Prod [Int; Int])) };
+           { id = { name = "Point3D" }; typ = (Some (Prod [Int; Int; Int])) }
+           ]
          }));
   (GlobalBinding
      (TBind
@@ -13,10 +14,12 @@
      (DBind
         { dtyp_name = { name = "plist" };
           bind_dty =
-          [{ id = { name = "Nil" }; typ = TUnit };
+          [{ id = { name = "Nil" }; typ = (Some TUnit) };
             { id = { name = "Cons" };
               typ =
-              (Prod [(Typ { name = "point" }); (Typ { name = "plist" })]) }
+              (Some (Prod
+                       [(Typ { name = "point" }); (Typ { name = "plist" })]))
+              }
             ]
           }));
   (Value
@@ -79,3 +82,7 @@
                      }))
           }))
   ]
+type point = PointTwo of int * int | Point3D of int * int * int
+type point2 = point
+type plist = Nil of unit | Cons of point * plist
+Cons (PointTwo (0, 0), Cons (PointTwo (0, 1), Cons (PointTwo (0, 2), Nil)))

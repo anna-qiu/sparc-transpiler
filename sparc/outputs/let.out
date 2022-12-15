@@ -1,0 +1,30 @@
+[(LocalBinding
+    { bindings =
+      [(FBind
+          { func_name = { name = "f" }; func_args = (PVar { name = "i" });
+            func_body =
+            (If
+               { guard =
+                 (EParen
+                    (Infix
+                       { op = Less; e1 = (EVar { name = "i" });
+                         e2 = (Value (Lit (Num 2.))) }));
+                 then_branch = (EVar { name = "i" });
+                 else_branch =
+                 (Infix
+                    { op = Times; e1 = (EVar { name = "i" });
+                      e2 =
+                      (App
+                         { func = (EVar { name = "f" });
+                           arg =
+                           (Infix
+                              { op = Minus; e1 = (EVar { name = "i" });
+                                e2 = (Value (Lit (Num 1.))) })
+                           })
+                      })
+                 })
+            })
+        ];
+      usage =
+      (App { func = (EVar { name = "f" }); arg = (Value (Lit (Num 5.))) }) })
+  ]

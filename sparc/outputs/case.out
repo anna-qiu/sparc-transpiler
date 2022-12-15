@@ -1,5 +1,5 @@
 [(Case
-    { sum = (EVar { name = "data" });
+    { sum = (Value (VVar { name = "data" }));
       branches =
       [{ matchp =
          (PCon
@@ -15,8 +15,8 @@
               e2 =
               (EParen
                  (Infix
-                    { op = Plus; e1 = (EVar { name = "x" });
-                      e2 = (EVar { name = "y" }) }))
+                    { op = Plus; e1 = (Value (VVar { name = "x" }));
+                      e2 = (Value (VVar { name = "y" })) }))
               })
          };
         { matchp =
@@ -26,10 +26,14 @@
           exp =
           (Infix
              { op = Times; e1 = (Value (Lit (Num 10.)));
-               e2 = (EVar { name = "x" }) })
+               e2 = (Value (VVar { name = "x" })) })
           };
         { matchp = (PCon { pconstructor = { name = "nil" }; pattern = None });
           exp = (Value (Lit (Num 1.))) }
         ]
       })
   ]
+case data of
+  cons (x, y) => 10 * (x + y)
+| single (x) => 10 * x
+| nil => 1

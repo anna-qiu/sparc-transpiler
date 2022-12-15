@@ -1,3 +1,23 @@
-_cons(x, y) = (10, 20)
-_cons = _cons()
-_cons() = _cons(10)
+let
+  x = 2 + 3
+  fun f(w) = ((w + 4), (w * 2))
+  (y, z) = [f x - 1]
+in
+  x + y + z
+end
+
+let
+  type point = _PointTwo of Z * Z
+             | _PointThree of Z * Z * Z
+  fun injectThree (_PointTwo (x,y)) = _PointThree (x, y)
+  fun projectTwo (_PointThree ((x,y),z)) = _PointTwo (x, y)
+  fun compose ((f, g), h) = [f g h]
+  p0 = _PointTwo (0,0)
+  q0 = [injectThree p0]
+  p1 = [compose projectTwo injectThree p0]
+in
+  (p0,q0)
+end
+
+fun f (x) = _Some (x)
+fun g (x,y) = _Some (x,y)

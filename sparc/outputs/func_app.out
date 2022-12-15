@@ -1,33 +1,42 @@
-[(App { func = (EVar { name = "f" }); arg = (Value (Lit (Num 10.))) });
+[(App { func = (Value (VVar { name = "f" })); arg = (Value (Lit (Num 10.))) });
   (App
      { func =
-       (App { func = (EVar { name = "nth" }); arg = (EVar { name = "S" }) });
+       (App
+          { func = (Value (VVar { name = "nth" }));
+            arg = (Value (VVar { name = "S" })) });
        arg = (Value (Lit (Num 10.))) });
   (App
-     { func = (EVar { name = "nth" });
+     { func = (Value (VVar { name = "nth" }));
        arg =
-       (App { func = (EVar { name = "f" }); arg = (EVar { name = "A" }) }) });
+       (App
+          { func = (Value (VVar { name = "f" }));
+            arg = (Value (VVar { name = "A" })) })
+       });
   (App
      { func =
        (App
           { func =
             (App
-               { func = (EVar { name = "reduce" });
-                 arg = (EVar { name = "f1" }) });
+               { func = (Value (VVar { name = "reduce" }));
+                 arg = (Value (VVar { name = "f1" })) });
             arg =
             (App
                { func =
                  (App
-                    { func = (EVar { name = "nth" });
-                      arg = (EVar { name = "S" }) });
+                    { func = (Value (VVar { name = "nth" }));
+                      arg = (Value (VVar { name = "S" })) });
                  arg = (Value (Lit (Num 0.))) })
             });
        arg =
        (App
           { func =
             (App
-               { func = (EVar { name = "map" }); arg = (EVar { name = "f2" })
-                 });
-            arg = (EVar { name = "A" }) })
+               { func = (Value (VVar { name = "map" }));
+                 arg = (Value (VVar { name = "f2" })) });
+            arg = (Value (VVar { name = "A" })) })
        })
   ]
+f (10)
+nth (S) (10)
+nth (f (A))
+reduce (f1) (nth (S) (0)) (map (f2) (A))
