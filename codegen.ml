@@ -190,9 +190,78 @@ and gen_binding : binding -> string list = function
 
 and gen_seqop : seq_op -> string list = function
   | Length es -> gen_expression es |> parenthesize |> prefix ~prefix:"Seq.length "
-  | Empty -> [ "Seq.empty" ]
+  | Empty -> [ "Seq.empty ()" ]
   | Singleton es -> gen_expression es |> parenthesize |> prefix ~prefix:"Seq.singleton "
-  | _ -> [ "ok" ]
+  | Nth { nth_seq ; nth_idx } -> 
+      join ~joiner:" " ~with_space:false
+      (gen_expression nth_seq |> parenthesize)
+      (gen_expression nth_idx |> parenthesize)
+      |> prefix ~prefix:"Seq.nth "
+  | Subseq { sub_seq ; start_idx ; end_idx } ->
+      (* end - start + 1 *)
+      join ~joiner:"-"
+      (gen_expression end_idx |> parenthesize)
+      (gen_expression start_idx |> parenthesize)
+      |> suffix ~suffix:" + 1"
+      (* (start, end - start + 1) *)
+      |> join ~joiner:", " ~with_space:false
+          (gen_expression start_idx)
+      |> parenthesize
+      (* Seq.subseq s (start, end - start + 1) *)
+      |> join ~joiner:" " ~with_space:false
+          (gen_expression sub_seq |> parenthesize)
+      |> prefix ~prefix:"Seq.subseq "
+  | Tabulate { tab_fn ; tab_len } ->
+      let fn = 
+        let { params ; body } = tab_fn in
+        let header = gen_pattern ~add_parens:false params 
+                     |> prefix ~prefix:"fn " 
+                     |> suffix ~suffix:" =>" 
+        in
+        match header with
+        | [] -> failwith "tab fn: should never have an empty header list"
+        | _ -> join ~joiner:" " ~with_space:false header (gen_expression body)
+                |> parenthesize
+      in
+      let len = gen_expression tab_len |> parenthesize in
+      join ~joiner:" " ~with_space:false fn len
+      |> prefix ~prefix:"Seq.tabulate "
+  | Map { map_fn ; map_seq } ->
+      let fn = 
+        let { params ; body } = map_fn in
+        let header = gen_pattern ~add_parens:false params 
+                     |> prefix ~prefix:"fn " 
+                     |> suffix ~suffix:" =>" 
+        in
+        match header with
+        | [] -> failwith "map fn: should never have an empty header list"
+        | _ -> join ~joiner:" " ~with_space:false header (gen_expression body)
+                |> parenthesize
+      in
+      let seq = gen_expression map_seq |> parenthesize in
+      join ~joiner:" " ~with_space:false fn seq
+      |> prefix ~prefix:"Seq.map "
+  | Filter { filter_fn ; filter_seq } ->
+      let fn = 
+        let { params ; body } = filter_fn in
+        let header = gen_pattern ~add_parens:false params 
+                     |> prefix ~prefix:"fn " 
+                     |> suffix ~suffix:" =>" 
+        in
+        match header with
+        | [] -> failwith "filter fn: should never have an empty header list"
+        | _ -> join ~joiner:" " ~with_space:false header (gen_expression body)
+                |> parenthesize
+      in
+      let seq = gen_expression filter_seq |> parenthesize in
+      join ~joiner:" " ~with_space:false fn seq
+      |> prefix ~prefix:"Seq.filter "
+  | Append { append_left ; append_right } ->
+      join ~joiner:", " ~with_space:false
+      (gen_expression append_left |> parenthesize)
+      (gen_expression append_right |> parenthesize)
+      |> parenthesize
+      |> prefix ~prefix:"Seq.append "
 
 and gen_expression : expression -> string list = function
   | EParen e -> gen_expression e |> parenthesize
