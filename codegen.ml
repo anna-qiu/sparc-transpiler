@@ -110,10 +110,13 @@ and gen_pattern ?(add_parens = true) : pattern -> string list = function
           else lst
   | PCon { pconstructor ; pattern } -> 
       let con = gen_dcon pconstructor in
-      let vals = gen_pattern ~add_parens:false pattern |> parenthesize in
-      (match List.length vals with
+      let pats = match pattern with
+                 | Some p -> gen_pattern ~add_parens:false p |> parenthesize 
+                 | None -> []
+      in
+      (match List.length pats with
       | 0 -> [ con ]
-      | _ -> combine con vals)
+      | _ -> combine con pats)
   | PParen p -> gen_pattern ~add_parens:false p |> parenthesize
   | PUnit -> [ "()" ]
 
@@ -142,8 +145,13 @@ and gen_value ?(add_parens = true) : value -> string list = function
           else lst
   | VCon { vconstructor ; value } -> 
       let con = gen_dcon vconstructor in
-      let vals = gen_value ~add_parens:false value |> parenthesize in
-      combine con vals
+      let vals = match value with
+                 | Some v -> gen_value ~add_parens:false v |> parenthesize 
+                 | None -> []
+      in
+      (match List.length vals with
+      | 0 -> [ con ]
+      | _ -> combine con vals)
   | Lambda { params ; body } -> 
       let header = gen_pattern ~add_parens:false params 
                    |> prefix ~prefix:"fn " 
