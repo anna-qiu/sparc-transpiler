@@ -134,7 +134,7 @@ and expression =
   | App of fn_app
   | LocalBinding of let_binding
   | GlobalBinding of binding
-  | Typ2 of typ (* just testing *)
+  | SeqOp of seq_op
 [@@deriving show { with_path = false }]
 
 and infix =
@@ -200,6 +200,13 @@ and let_binding =
     usage : expression;
   }
 [@@deriving show { with_path = false }]
+
+and seq_op =
+  | Length of expression
+  | Empty
+  | Singleton of expression
+  | Nth of expression * expression
+  | Subseq of expression * (expression * expression)
 
 and bin_op =
   | Plus

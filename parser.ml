@@ -15,6 +15,7 @@ type token =
   | RPAREN
   | RBRACKET
   | RBRACE
+  | RANGLE
   | PLUS
   | PARA
   | OR
@@ -28,6 +29,7 @@ type token =
   | LESS
   | LBRACKET
   | LBRACE
+  | LANGLE
   | LAMBDA
   | INT
   | IN
@@ -450,16 +452,47 @@ and parse_binding () =
 (****
 --------parse expressions--------
 precedence:
-- v, (e), case, let in end, if then else, [e1 e2], global bindings
+- v, (e), case, let in end, if then else, {e1 e2}, global bindings, |es|, <<>>, <<es>>
 - not e1
 - e1 * / e2
 - e1 + - e2
 - e1 < > = e2
 - e1 and or e2
 - e1 , || e2
+- es[i], es[i:j]
 ****)
+
+(* e -> es[i] *)
+(* e -> es[i:j] *)
 and parse_expr () =
-  parse_expr_sequence ()
+  match (parse_expr_sequence ()) with
+  | Ok seq -> (
+    let stack = !tokens in
+    match (List.hd !tokens) with
+    | Some LBRACKET -> tokens := List.drop !tokens 1; (
+      match (parse_expr_sequence ()) with
+      | Ok s -> (
+        match (List.hd !tokens) with
+        | Some RBRACKET -> tokens := List.drop !tokens 1; Ok (SeqOp (Nth (seq, s)))
+        | _ -> (
+          match (List.hd !tokens) with
+          | Some COLON -> tokens := List.drop !tokens 1; (
+            match (parse_expr_sequence ()) with
+            | Ok e -> (
+              match (List.hd !tokens) with
+              | Some RBRACKET -> tokens := List.drop !tokens 1; Ok (SeqOp (Subseq (seq, (s, e))))
+              | _ -> tokens := stack; Error (SyntaxError "Seq.subseq: missing right bracket")
+            )
+            | _ -> tokens := stack; Error (SyntaxError "Seq.subseq: invalid expressions")
+          )
+          | _ -> tokens := stack; Error (SyntaxError "Seq.subseq: missing arguments")
+        )
+      )
+      | _ -> tokens := stack; Error (SyntaxError "Seq.nth: missing indices")
+    )
+    | _ -> Ok seq
+  )
+  | Error e -> Error e
 
 (* e -> e1, e2 *)
 (* e -> e1 || e2 *)
@@ -640,9 +673,12 @@ and parse_expr_not () =
 (* e -> v *)
 (* e -> (e) *)
 (* e -> if e1 then e2 else e3 *)
-(* e -> [e1 e2] *)
+(* e -> {e1 e2} *)
 (* e -> case e1 | p => e2 *)
 (* e -> let b+ in e end *)
+(* e -> |es| *)
+(* e -> <<>> *)
+(* e -> <<es>>*)
 and parse_expr_top () =
   let stack = !tokens in
   match (parse_binding ()) with
@@ -651,119 +687,137 @@ and parse_expr_top () =
       match (parse_value ()) with
       | Ok value -> print_debug ("successfully parsed value " ^ show_value value); Ok (Value value)
       | _ -> (
-        (* match (parse_variable ()) with
-        | Ok var -> print_debug ("successfully parsed variable " ^ show_id var); Ok (EVar var)
-        | _ -> ( *)
-          match (List.hd !tokens) with
-          | Some LPAREN -> tokens :=  List.drop !tokens 1; (
-            match (parse_expr ()) with
-            | Ok e' -> (
-              print_debug ("\n---> found e " ^ Syntax.show_expression e');
-              match (List.hd !tokens) with
-              | Some RPAREN -> tokens := List.drop !tokens 1; Ok (EParen e')
-              | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (missing right paren)")
-            )
-            | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused left paren)")
+        match (List.hd !tokens) with
+        | Some LPAREN -> tokens :=  List.drop !tokens 1; (
+          match (parse_expr ()) with
+          | Ok e' -> (
+            print_debug ("\n---> found e " ^ Syntax.show_expression e');
+            match (List.hd !tokens) with
+            | Some RPAREN -> tokens := List.drop !tokens 1; Ok (EParen e')
+            | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (missing right paren)")
           )
-          | Some IF -> tokens :=  List.drop !tokens 1; (
-            match (parse_expr ()) with
-            | Ok cond -> (
-              match (List.hd !tokens) with
-              | Some THEN -> tokens := List.drop !tokens 1; ( 
-                match (parse_expr ()) with
-                | Ok then_e -> (
-                  match (List.hd !tokens) with
-                  | Some ELSE -> tokens := List.drop !tokens 1; (
-                    match (parse_expr ()) with
-                    | Ok else_e -> Ok (If { guard = cond; then_branch = then_e; else_branch = else_e })
-                    | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused else)")
-                  )
-                  | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (missing else)")
-                )
-                | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused then)")
-              )
-              | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (missing then)")
-            )
-            | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused if)")
-          )
-          | Some LBRACKET -> tokens := List.drop !tokens 1; (
-            match (parse_expr ()) with
-            | Ok caller -> (
-              let result = ref caller in
-              let is_looping = ref true in
-              while !is_looping do
-                match (parse_expr ()) with
-                | Ok arg -> result := App { func = !result; arg = arg };
-                | _ -> is_looping := false;
-                ;
-              done;
-              match (List.hd !tokens) with
-              | Some RBRACKET -> tokens := List.drop !tokens 1; Ok !result
-              | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (missing right bracket)")
-            )
-            | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused left bracket)")
-          )
-          | Some CASE -> tokens := List.drop !tokens 1; (
-            match (parse_expr ()) with
-            | Ok e -> (
-              let cases = ref [] in
-              let is_looping = ref true in
-              let is_valid = ref true in
-              while !is_looping do
-                match (List.hd !tokens) with 
-                | Some BAR -> tokens := List.drop !tokens 1; (
-                  match (parse_pattern ()) with
-                  | Ok p -> (
-                    match (List.hd !tokens) with
-                    | Some ARROW -> tokens := List.drop !tokens 1; (
-                      match (parse_expr ()) with
-                      | Ok e' -> cases := {matchp = p; exp = e'}::!cases
-                      | _ -> is_looping := false; is_valid := false; (* case missing expression *)
-                    )
-                    | _ -> is_looping := false; is_valid := false; (* case missing arrow *)
-                  )
-                  | _ -> is_looping := false; is_valid := false;  (* case missing pattern *)
-                  ;
-                )
-                | _ -> is_looping := false; (* no more cases *)
-                ;
-              done;
-              if (not !is_valid) || (List.length !cases = 0) 
-              then (tokens := stack; Error (SyntaxError "cannot parse expression (malformed case)"))
-              else Ok (Case { sum = e; branches = (List.rev !cases) })
-            )
-            | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused case)")
-          )
-          | Some LET -> tokens := List.drop !tokens 1; (
-            match (parse_binding ()) with
-            | Ok b -> (
-              let bindings = ref [b] in 
-              let is_looping = ref true in
-              while !is_looping do
+          | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused left paren)")
+        )
+        | Some IF -> tokens :=  List.drop !tokens 1; (
+          match (parse_expr ()) with
+          | Ok cond -> (
+            match (List.hd !tokens) with
+            | Some THEN -> tokens := List.drop !tokens 1; ( 
+              match (parse_expr ()) with
+              | Ok then_e -> (
                 match (List.hd !tokens) with
-                | Some IN -> is_looping := false;
-                | _ -> (
-                  match (parse_binding ()) with
-                  | Ok b' -> bindings := b'::!bindings;
-                  | _ -> is_looping := false;
+                | Some ELSE -> tokens := List.drop !tokens 1; (
+                  match (parse_expr ()) with
+                  | Ok else_e -> Ok (If { guard = cond; then_branch = then_e; else_branch = else_e })
+                  | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused else)")
                 )
-              done;
-              match (List.hd !tokens) with
-              | Some IN -> tokens := List.drop !tokens 1; (
-                match (parse_expr ()) with
-                | Ok e -> (
-                  match (List.hd !tokens) with
-                  | Some END -> tokens := List.drop !tokens 1; Ok (LocalBinding { bindings = List.rev !bindings; usage = e})
-                  | _ -> Error (SyntaxError "cannot parse expression (missing end)")
-                )
-                | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (invalid binding result)")
+                | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (missing else)")
               )
-              | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (invalid binding or missing in)")
+              | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused then)")
             )
-            | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused let)")
+            | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (missing then)")
           )
-          | _ -> Error (SyntaxError "other cases")
-        (* ) *)
+          | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused if)")
+        )
+        | Some LBRACE -> tokens := List.drop !tokens 1; (
+          match (parse_expr ()) with
+          | Ok caller -> (
+            let result = ref caller in
+            let is_looping = ref true in
+            while !is_looping do
+              match (parse_expr ()) with
+              | Ok arg -> result := App { func = !result; arg = arg };
+              | _ -> is_looping := false;
+              ;
+            done;
+            match (List.hd !tokens) with
+            | Some RBRACE -> tokens := List.drop !tokens 1; Ok !result
+            | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (missing right bracket)")
+          )
+          | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused left bracket)")
+        )
+        | Some CASE -> tokens := List.drop !tokens 1; (
+          match (parse_expr ()) with
+          | Ok e -> (
+            let cases = ref [] in
+            let is_looping = ref true in
+            let is_valid = ref true in
+            while !is_looping do
+              match (List.hd !tokens) with 
+              | Some BAR -> tokens := List.drop !tokens 1; (
+                match (parse_pattern ()) with
+                | Ok p -> (
+                  match (List.hd !tokens) with
+                  | Some ARROW -> tokens := List.drop !tokens 1; (
+                    match (parse_expr ()) with
+                    | Ok e' -> cases := {matchp = p; exp = e'}::!cases
+                    | _ -> is_looping := false; is_valid := false; (* case missing expression *)
+                  )
+                  | _ -> is_looping := false; is_valid := false; (* case missing arrow *)
+                )
+                | _ -> is_looping := false; is_valid := false;  (* case missing pattern *)
+                ;
+              )
+              | _ -> is_looping := false; (* no more cases *)
+              ;
+            done;
+            if (not !is_valid) || (List.length !cases = 0) 
+            then (tokens := stack; Error (SyntaxError "cannot parse expression (malformed case)"))
+            else Ok (Case { sum = e; branches = (List.rev !cases) })
+          )
+          | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused case)")
+        )
+        | Some LET -> tokens := List.drop !tokens 1; (
+          match (parse_binding ()) with
+          | Ok b -> (
+            let bindings = ref [b] in 
+            let is_looping = ref true in
+            while !is_looping do
+              match (List.hd !tokens) with
+              | Some IN -> is_looping := false;
+              | _ -> (
+                match (parse_binding ()) with
+                | Ok b' -> bindings := b'::!bindings;
+                | _ -> is_looping := false;
+              )
+            done;
+            match (List.hd !tokens) with
+            | Some IN -> tokens := List.drop !tokens 1; (
+              match (parse_expr ()) with
+              | Ok e -> (
+                match (List.hd !tokens) with
+                | Some END -> tokens := List.drop !tokens 1; Ok (LocalBinding { bindings = List.rev !bindings; usage = e})
+                | _ -> Error (SyntaxError "cannot parse expression (missing end)")
+              )
+              | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (invalid binding result)")
+            )
+            | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (invalid binding or missing in)")
+          )
+          | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused let)")
+        )
+        | Some BAR -> tokens := List.drop !tokens 1; (
+          match (parse_expr()) with 
+          | Ok es -> (
+            match (List.hd !tokens) with
+            | Some BAR -> tokens := List.drop !tokens 1; Ok (SeqOp (Length es))
+            | _ -> tokens := stack; Error (SyntaxError "Seq.length: missing bar")
+          )
+          | _ -> tokens := stack; Error (SyntaxError "Seq.length: invalid expression")
+        )
+        | Some LANGLE -> tokens := List.drop !tokens 1; (
+          match (List.hd !tokens) with
+          | Some RANGLE -> tokens := List.drop !tokens 1; Ok (SeqOp Empty)
+          | _ -> (
+            match (parse_expr ()) with 
+            | Ok es -> (
+              match (List.hd !tokens) with
+              | Some RANGLE -> tokens := List.drop !tokens 1; Ok (SeqOp (Singleton es))
+              | _ -> tokens := stack; Error (SyntaxError "Seq.singleton: missing >")
+            )
+            | _ -> tokens := stack; Error (SyntaxError "Seq.singleton: invalid expression")
+          )
+        )
+        | _ -> Error (SyntaxError "Seq.singleton: invalid expression")
       )
     )
 

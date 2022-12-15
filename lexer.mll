@@ -52,6 +52,8 @@ rule token = parse
   | ']' { RBRACKET }
   | '{' { LBRACE }
   | '}' { RBRACE }
+  | "<<" { LANGLE }
+  | ">>" { RANGLE }
   | '+' { PLUS }
   | '-' { MINUS }
   | '*' { TIMES }

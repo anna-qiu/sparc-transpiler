@@ -7,6 +7,6 @@ fun find (t,x) =
       if x == y then
         true
       else if x < y then
-        [find (left, x)]
+        {find (left, x)}
       else
-        [find (right, x)]
+        {find (right, x)}

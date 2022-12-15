@@ -188,6 +188,14 @@ and gen_binding : binding -> string list = function
       let dtyp = gen_dtyp bind_dty in
       combine name dtyp
 
+and gen_seqop : seq_op -> string list = function
+  | Length es -> gen_expression es |> parenthesize |> prefix ~prefix:"Seq.length "
+  | Empty -> [ "Seq.empty" ]
+  | Singleton es -> gen_expression es |> parenthesize |> prefix ~prefix:"Seq.singleton "
+  (* | Nth (seq, idx) -> [ "ok" ]
+  | Subseq (seq, (starti, endi)) -> [ "ok" ] *)
+  | _ -> [ "ok" ]
+
 and gen_expression : expression -> string list = function
   | EParen e -> gen_expression e |> parenthesize
   | Value v -> gen_value v
@@ -255,7 +263,7 @@ and gen_expression : expression -> string list = function
       let usage' = gen_expression usage |> indent_all in
       ["let"] @ bindings' @ ["in"] @ usage' @ ["end"]
   | GlobalBinding binding -> gen_binding binding
-  | Typ2 _ -> failwith "idk what this is (yet)"
+  | SeqOp seq_op -> gen_seqop seq_op
 
 (* current does nothing, should enforce the char limit *)
 (* probably needs a helper function to find the indent depth of a line *)

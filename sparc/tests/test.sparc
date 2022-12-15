@@ -1,7 +1,7 @@
 let
   x = 2 + 3
   fun f(w) = ((w + 4), (w * 2))
-  (y, z) = [f x - 1]
+  (y, z) = {f x - 1}
 in
   x + y + z
 end
@@ -11,13 +11,19 @@ let
              | _PointThree of Z * Z * Z
   fun injectThree (_PointTwo (x,y)) = _PointThree (x, y)
   fun projectTwo (_PointThree ((x,y),z)) = _PointTwo (x, y)
-  fun compose ((f, g), h) = [f g h]
+  fun compose ((f, g), h) = {f g h}
   p0 = _PointTwo (0,0)
-  q0 = [injectThree p0]
-  p1 = [compose projectTwo injectThree p0]
+  q0 = {injectThree p0}
+  p1 = {compose projectTwo injectThree p0}
 in
   (p0,q0)
 end
 
 fun f (x) = _Some (x)
 fun g (x,y) = _Some (x,y)
+
+|{f x}|
+<<>>
+<<{f S 10}>>
+{f S 10}[5]
+{f S 10}[i: {f 2}]
