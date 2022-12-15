@@ -282,10 +282,10 @@ and parse_datatype_recur () =
     match (List.hd !tokens) with
     | Some OF -> tokens := List.drop !tokens 1; (
       match (parse_type()) with
-      | Ok t -> Ok ({ id = dc; typ = t })
+      | Ok t -> Ok ({ id = dc; typ = Some t })
       | _ -> tokens := stack; Error (SyntaxError "cannot parse datatype (unused of)")
     )
-    | _ -> Ok ({ id = dc; typ = TUnit })
+    | _ -> Ok ({ id = dc; typ = Some TUnit })
   )
   | _ -> Error (SyntaxError "cannot parse datatype")
 
@@ -733,6 +733,30 @@ and parse_expr_top () =
               else Ok (Case { sum = e; branches = (List.rev !cases) })
             )
             | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused case)")
+          )
+          | Some LET -> tokens := List.drop !tokens 1; (
+            match (parse_binding ()) with
+            | Ok b -> (
+              let bindings = ref [b] in 
+              let is_looping = ref true in
+              while !is_looping do
+                match (List.hd !tokens) with
+                | Some IN -> is_looping := false;
+                | _ -> (
+                  match (parse_binding ()) with
+                  | Ok b' -> bindings := b'::!bindings;
+                  | _ -> is_looping := false;
+                )
+              done;
+              match (List.hd !tokens) with
+              | Some IN -> tokens := List.drop !tokens 1; (
+                match (parse_expr ()) with
+                | Ok e -> Ok (LocalBinding { bindings = List.rev !bindings; usage = e})
+                | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (invalid binding result)")
+              )
+              | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (invalid binding or missing in)")
+            )
+            | _ -> tokens := stack; Error (SyntaxError "cannot parse expression (unused let)")
           )
           | _ -> Error (SyntaxError "other cases")
         )
