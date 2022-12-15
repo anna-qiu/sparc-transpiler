@@ -192,8 +192,6 @@ and gen_seqop : seq_op -> string list = function
   | Length es -> gen_expression es |> parenthesize |> prefix ~prefix:"Seq.length "
   | Empty -> [ "Seq.empty" ]
   | Singleton es -> gen_expression es |> parenthesize |> prefix ~prefix:"Seq.singleton "
-  (* | Nth (seq, idx) -> [ "ok" ]
-  | Subseq (seq, (starti, endi)) -> [ "ok" ] *)
   | _ -> [ "ok" ]
 
 and gen_expression : expression -> string list = function

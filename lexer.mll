@@ -54,6 +54,7 @@ rule token = parse
   | '}' { RBRACE }
   | "<<" { LANGLE }
   | ">>" { RANGLE }
+  | "++" { APPEND }
   | '+' { PLUS }
   | '-' { MINUS }
   | '*' { TIMES }
@@ -61,6 +62,7 @@ rule token = parse
   | "||" { PARA }
   | '|' { BAR }
   | '>' { GREATER }
+  | "<=" { LESS_EQUAL }
   | '<' { LESS }
   | '.' { DOT }
   | "->" { TO }
@@ -70,6 +72,7 @@ rule token = parse
   | "==" { EQUALS }
   | ',' { COMMA }
   | '_' { UNDERSCORE }
+  | "\\in" { IS_IN }
 
   (* literals *)
   | '"' { read_string (Buffer.create 17) lexbuf }

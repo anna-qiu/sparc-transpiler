@@ -27,3 +27,8 @@ fun g (x,y) = _Some (x,y)
 <<{f S 10}>>
 {f S 10}[5]
 {f S 10}[i: {f 2}]
+<<{f i} : 0 <= i < 10>>
+<<{f x} : x \in <<{f i} : 0 <= i < 10>> >>
+<<(x, y) \in S | {f (x, y)}>>
+
+{map f S} ++ {filter g S2}

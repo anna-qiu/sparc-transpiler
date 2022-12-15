@@ -26,11 +26,13 @@ type token =
   | MINUS
   | LPAREN
   | LET
+  | LESS_EQUAL
   | LESS
   | LBRACKET
   | LBRACE
   | LANGLE
   | LAMBDA
+  | IS_IN
   | INT
   | IN
   | IF
@@ -52,6 +54,7 @@ type token =
   | BAR
   | ASSIGN
   | ARROW
+  | APPEND
   | AND
 [@@deriving show { with_path = false }]
 
@@ -452,18 +455,20 @@ and parse_binding () =
 (****
 --------parse expressions--------
 precedence:
-- v, (e), case, let in end, if then else, {e1 e2}, global bindings, |es|, <<>>, <<es>>
+- v, (e), case, let in end, if then else, {e1 e2}, global bindings, 
+  |es|, <<>>, <<es>>, <<es : 0 <= x < en>>, <<es : p \in e>>
 - not e1
 - e1 * / e2
 - e1 + - e2
 - e1 < > = e2
 - e1 and or e2
 - e1 , || e2
-- es[i], es[i:j]
+- es[i], es[i:j], e1 ++ e2
 ****)
 
 (* e -> es[i] *)
 (* e -> es[i:j] *)
+(* e -> e1 ++ e2 *)
 and parse_expr () =
   match (parse_expr_sequence ()) with
   | Ok seq -> (
@@ -473,14 +478,14 @@ and parse_expr () =
       match (parse_expr_sequence ()) with
       | Ok s -> (
         match (List.hd !tokens) with
-        | Some RBRACKET -> tokens := List.drop !tokens 1; Ok (SeqOp (Nth (seq, s)))
+        | Some RBRACKET -> tokens := List.drop !tokens 1; Ok (SeqOp (Nth {nth_seq = seq; nth_idx = s }))
         | _ -> (
           match (List.hd !tokens) with
           | Some COLON -> tokens := List.drop !tokens 1; (
             match (parse_expr_sequence ()) with
             | Ok e -> (
               match (List.hd !tokens) with
-              | Some RBRACKET -> tokens := List.drop !tokens 1; Ok (SeqOp (Subseq (seq, (s, e))))
+              | Some RBRACKET -> tokens := List.drop !tokens 1; Ok (SeqOp (Subseq { sub_seq = seq; start_idx = s; end_idx = e }))
               | _ -> tokens := stack; Error (SyntaxError "Seq.subseq: missing right bracket")
             )
             | _ -> tokens := stack; Error (SyntaxError "Seq.subseq: invalid expressions")
@@ -489,6 +494,11 @@ and parse_expr () =
         )
       )
       | _ -> tokens := stack; Error (SyntaxError "Seq.nth: missing indices")
+    )
+    | Some APPEND -> tokens := List.drop !tokens 1; (
+      match (parse_expr_sequence ()) with
+      | Ok seq2 -> Ok (SeqOp (Append { append_left = seq; append_right = seq2 }))
+      | _ -> tokens := stack; Error (SyntaxError "Seq.append: invalid RHS")
     )
     | _ -> Ok seq
   )
@@ -678,7 +688,9 @@ and parse_expr_not () =
 (* e -> let b+ in e end *)
 (* e -> |es| *)
 (* e -> <<>> *)
-(* e -> <<es>>*)
+(* e -> <<es>> *)
+(* e -> <<es : 0 <= x < en >> *)
+(* e -> <<es : p \in e >> *)
 and parse_expr_top () =
   let stack = !tokens in
   match (parse_binding ()) with
@@ -808,14 +820,75 @@ and parse_expr_top () =
           match (List.hd !tokens) with
           | Some RANGLE -> tokens := List.drop !tokens 1; Ok (SeqOp Empty)
           | _ -> (
-            match (parse_expr ()) with 
-            | Ok es -> (
+            match (parse_pattern ()) with
+            | Ok p -> (
+              print_endline "testing222";
               match (List.hd !tokens) with
-              | Some RANGLE -> tokens := List.drop !tokens 1; Ok (SeqOp (Singleton es))
-              | _ -> tokens := stack; Error (SyntaxError "Seq.singleton: missing >")
+              | Some IS_IN -> tokens := List.drop !tokens 1; (
+                match (parse_expr ()) with
+                | Ok es -> (
+                  match (List.hd !tokens) with
+                  | Some BAR -> tokens := List.drop !tokens 1; (
+                    match (parse_expr ()) with
+                    | Ok cond -> (
+                      match (List.hd !tokens) with
+                      | Some RANGLE -> tokens := List.drop !tokens 1; Ok (SeqOp (Filter { filter_fn = { params = p; body = cond }; filter_seq = es }))
+                      | _ -> tokens := stack; Error (SyntaxError "Seq.filter: missing >")
+                    )
+                    | _ -> tokens := stack; Error (SyntaxError "Seq.filter: missing condition")
+                  )
+                  | _ -> tokens := stack; Error (SyntaxError "Seq.filter: missing bar")
+                )
+                | _ -> tokens := stack; Error (SyntaxError "Seq.filter: missing seq")
+              )
+              | _ -> tokens := stack; Error (SyntaxError "Seq.filter: missing \\in")
             )
-            | _ -> tokens := stack; Error (SyntaxError "Seq.singleton: invalid expression")
+            | _ -> (
+              match (parse_expr ()) with 
+              | Ok es -> (
+                match (List.hd !tokens) with
+                | Some COLON -> tokens := List.drop !tokens 1; (
+                  match (List.nth !tokens 0, List.nth !tokens 1, List.nth !tokens 3) with
+                  | Some (NUM 0.), Some LESS_EQUAL, Some LESS -> (
+                    tokens := List.drop !tokens 2;
+                    match (parse_variable ()) with
+                    | Ok v -> tokens := List.drop !tokens 1; (
+                      match (parse_expr ()) with
+                      | Ok en -> (
+                        match (List.hd !tokens) with
+                        | Some RANGLE -> tokens := List.drop !tokens 1; Ok (SeqOp (Tabulate { tab_fn = { params = PVar v; body = es}; tab_len = en }))
+                        | _ -> tokens := stack; Error (SyntaxError "Seq.tabulate: missing >")
+                      )
+                      | _ -> tokens := stack; Error (SyntaxError "Seq.tabulate: missing length")
+                    )
+                    | _ -> tokens := stack; Error (SyntaxError "Seq.tabulate: malformed condition")
+                  )
+                  | _ -> (
+                    match (parse_pattern ()) with
+                    | Ok p -> (
+                      match (List.hd !tokens) with
+                      | Some IS_IN -> tokens := List.drop !tokens 1; (
+                        match (parse_expr ()) with
+                        | Ok ep -> (
+                          match (List.hd !tokens) with
+                          | Some RANGLE -> tokens := List.drop !tokens 1; Ok (SeqOp (Map { map_fn = { params = p; body = es }; map_seq = ep }))
+                          | _ -> tokens := stack; Error (SyntaxError "Seq.map: missing >")
+                        )
+                        | _ -> tokens := stack; Error (SyntaxError "Seq.map: missing seq")
+                      )
+                      | _ -> tokens := stack; Error (SyntaxError "Seq.map: missing \\in")
+                    )
+                    | _ -> tokens := stack; Error (SyntaxError "Invalid Seq operation")
+                  )
+                )
+                | Some RANGLE -> tokens := List.drop !tokens 1; Ok (SeqOp (Singleton es))
+                | _ -> tokens := stack; Error (SyntaxError "Seq.singleton: missing >")
+              )
+              | _ -> tokens := stack; Error (SyntaxError "Invalid Seq operation")
+            )
           )
+            
+           
         )
         | _ -> Error (SyntaxError "Seq.singleton: invalid expression")
       )

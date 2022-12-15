@@ -205,8 +205,55 @@ and seq_op =
   | Length of expression
   | Empty
   | Singleton of expression
-  | Nth of expression * expression
-  | Subseq of expression * (expression * expression)
+  | Nth of nth
+  | Subseq of subseq
+  | Tabulate of tabulate
+  | Map of map
+  | Filter of filter
+  | Append of append
+
+and nth = 
+  {
+    nth_seq : expression;
+    nth_idx : expression;
+  }
+[@@deriving show { with_path = false }]
+
+and subseq = 
+  {
+    sub_seq : expression;
+    start_idx : expression;
+    end_idx : expression;
+  }
+[@@deriving show { with_path = false }]
+
+and tabulate = 
+  {
+    tab_fn : lambda;
+    tab_len : expression;
+  }
+[@@deriving show { with_path = false }]
+
+and map = 
+  {
+    map_fn : lambda;
+    map_seq : expression;
+  }
+[@@deriving show { with_path = false }]
+
+and filter = 
+  {
+    filter_fn : lambda;
+    filter_seq : expression;
+  }
+[@@deriving show { with_path = false }]
+
+and append = 
+  {
+    append_left : expression;
+    append_right : expression;
+  }
+[@@deriving show { with_path = false }]
 
 and bin_op =
   | Plus
