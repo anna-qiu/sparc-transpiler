@@ -67,6 +67,7 @@ let gen_infix_op : bin_op -> string = function
   | Minus -> "-"
   | Times -> "*"
   | Divide -> "div"
+  | Mod -> "mod"
   | Less -> "<"
   | Greater -> ">"
   | Equals -> "="
@@ -138,7 +139,7 @@ and gen_value ?(add_parens = true) : value -> string list = function
   | UnOp op -> [ gen_un_op op ]
   | BinOp op -> [ gen_bin_op op ]
   | VPair { v1 ; v2 } -> 
-      (match gen_value v1, gen_value v2 with
+      (match gen_value ~add_parens:false v1, gen_value ~add_parens:false v2 with
       | ([], _ | _, []) -> failwith "vpair: should never have empty value lists"
       | v1', v2' -> join ~joiner:", " ~with_space:false v1' v2')
       |> fun lst -> 
@@ -399,7 +400,9 @@ let prettify (lines : string list) : string list =
   clean_parens lines 
   |> enforce_lines
 
-let codegen (main : main) : string = 
+let codegen ?(t = 2) ?(l = 80) (main : main) : string = 
+  character_limit := l;
+  tab_size := t;
   List.map ~f:gen_expression main 
   |> List.map ~f:prettify
   |> List.concat

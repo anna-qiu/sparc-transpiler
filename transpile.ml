@@ -8,10 +8,10 @@ let gen_tokens (code_string : string) : Parser.token list =
     | tok -> tok :: (construct buf)
   in construct lexbuf
 
-let transpile (code_string : string) : string =
+let transpile (code_string : string) ~(t : int) ~(l : int) : string =
   gen_tokens code_string
   |> Parser.parse
-  |> Codegen.codegen
+  |> Codegen.codegen ~t ~l
 
 let _ = Js.export "transpile" 
-  (fun s -> s |> Js.to_string |> transpile |> Js.string)
+  (fun s t l -> s |> Js.to_string |> transpile ~t ~l |> Js.string)

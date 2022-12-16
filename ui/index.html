@@ -12,11 +12,28 @@
 <body>
 
   <header>
-    <div id="title">sparc transpiler</div>
+    <div id="title">sparc(ish) transpiler</div>
     <div id="by">anna, joanna</div>
+    <div id="fun">
+      <!-- <label for="fun">💃</label>
+      <input type="checkbox" name="fun" id="fun_button"> -->
+      <input class="tgl tgl-flip" id="fun_button" type="checkbox"/>
+      <label class="tgl-btn" data-tg-off="🧍‍♀️" data-tg-on="💃" for="fun_button"></label>
+    </div>
   </header>
 
   <main>
+    <div id="notes">
+      <div id="notes_title">note:</div>
+      <div class="note">
+        this is sparc(ish), with emphasis on the ish. the <a href="../sparc-original-spec.pdf">original sparc specification</a> is clear enough for humans to read and understand, but too ambiguous for a computer to scan and process. we had to modify the specification to 1) be typable on a keyboard (i.e. to not use mathematical symbols) and 2) disambiguate ambiguous things. an example of something ambiguous: <pre><code class="lang-sml">let 
+  x = a 
+  y = b 
+in x end</code></pre> 
+        as a human (👀), we can see that we're binding <code class="lang-sml">a</code> to <code class="lang-sml">x</code> and <code class="lang-sml">b</code> to <code class="lang-sml">y</code>. however, when scanning the code, the parser sees <code class="lang-sml">let x = a y = b in x end</code>, which could be interpreted as intended or as binding <code class="lang-sml">(a y) = b</code> to <code class="lang-sml">x</code>. thus, we <a href="../sparc-modified-spec.pdf">modified the sparc specification</a> to disambiguate things like this.
+      </div>
+    </div>
+
     <div id="original">
       <div id="original_title">input:</div>
 
