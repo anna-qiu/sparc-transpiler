@@ -28,12 +28,18 @@ let gen_tokens (file : string) : Parser.token list =
   in construct lexbuf
 
 (* dune build && diff -u sparc/outputs/xxx.out <(dune exec ./test.exe sparc/tests/xxx.sparc) *)
-let () =
+(* let () =
   let fname = (Sys.get_argv ()).(1) in
   let tokens = gen_tokens fname in
   (* i think this is how you call the parser? i'm not sure what the type of the functions are *)
   let ast = Parser.parse tokens in
   print_endline (Syntax.show_main ast);
   (* print the sml translation *)
-  print_endline (Codegen.codegen ast);
+  print_endline (Codegen.codegen ast); *)
 
+
+let () =
+  (* let s = (Sys.get_argv ()).(1) in *)
+  let fname = (Sys.get_argv ()).(1) in
+  let s = In_channel.read_all fname |> String.split_lines in
+  print_endline (Codegen.prettify s |> String.concat ~sep:"\n")
