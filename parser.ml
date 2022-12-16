@@ -463,7 +463,7 @@ precedence:
 - e1 + - e2
 - e1 < > = e2
 - e1 and or e2
-- e1 || e2
+- e1 , || e2
 - es[i], es[i:j], e1 ++ e2
 ****)
 
@@ -505,6 +505,7 @@ and parse_expr () =
   )
   | Error e -> Error e
 
+(* e -> e1, e2 *)
 (* e -> e1 || e2 *)
 and parse_expr_sequence () =
   let stack = !tokens in
@@ -515,14 +516,19 @@ and parse_expr_sequence () =
     let result = ref e1 in
     let is_looping = ref true in
     let is_valid = ref true in
+    let is_seq = ref true in
     while !is_looping do
       print_debug ("\n --looping for " ^ Syntax.show_expression !result);
       match (List.hd !tokens) with
-      | Some PARA -> tokens := List.drop !tokens 1;
+      | Some COMMA -> tokens := List.drop !tokens 1;
+      | Some PARA -> tokens := List.drop !tokens 1; is_seq := false;
       | _ -> print_debug ("Failed to find op" ); is_looping := false;
       ;
       if !is_looping then (match (parse_expr_logic ()) with
-        | Ok e2 -> result := Parallel { left = !result; right = e2 };
+        | Ok e2 -> 
+          if !is_seq
+          then (result := Sequential { first = !result; second = e2 };)
+          else (result := Parallel { left = !result; right = e2 };)
         | _ -> tokens := stack; is_looping := false; is_valid := false;
         ) else ();
     done;
