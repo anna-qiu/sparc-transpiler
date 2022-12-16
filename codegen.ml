@@ -73,7 +73,6 @@ let gen_infix_op : bin_op -> string = function
   | Equals -> "="
   | Or -> "orelse"
   | And -> "andalso"
-  | Mod -> "mod"
 
 let rec gen_typ : typ -> string list = function
   | TParen typ -> gen_typ typ |> parenthesize
@@ -186,7 +185,7 @@ and gen_binding : binding -> string list = function
       let typ = gen_typ bind_typ in
       combine name typ
   | DBind { dtyp_name ; bind_dty } -> 
-      let name = "type " ^ gen_tycon dtyp_name ^ " =" in
+      let name = "datatype " ^ gen_tycon dtyp_name ^ " =" in
       let dtyp = gen_dtyp bind_dty in
       combine name dtyp
 
@@ -260,8 +259,8 @@ and gen_seqop : seq_op -> string list = function
       |> prefix ~prefix:"Seq.filter "
   | Append { append_left ; append_right } ->
       join ~joiner:", " ~with_space:false
-      (gen_expression append_left |> parenthesize)
-      (gen_expression append_right |> parenthesize)
+      (gen_expression append_left)
+      (gen_expression append_right)
       |> parenthesize
       |> prefix ~prefix:"Seq.append "
 
@@ -270,14 +269,15 @@ and gen_expression : expression -> string list = function
   | Value v -> gen_value v
   | Infix { op ; e1 ; e2 } -> 
       join ~joiner:(gen_infix_op op)
-      (gen_expression e1)
-      (gen_expression e2)
+      (gen_expression e1 |> parenthesize)
+      (gen_expression e2 |> parenthesize)
   | Unary { unary_op ; e } ->
-      combine (gen_un_op unary_op) (gen_expression e)
+      combine (gen_un_op unary_op) (gen_expression e |> parenthesize)
   | Sequential { first ; second } ->
       join ~joiner:", " ~with_space:false
-      (gen_expression first)
-      (gen_expression second)
+      (gen_expression first |> parenthesize)
+      (gen_expression second |> parenthesize)
+      |> parenthesize
   | Parallel { left ; right } ->
       let left' = gen_expression left 
                   |> parenthesize
@@ -294,7 +294,7 @@ and gen_expression : expression -> string list = function
       let gen_branch ({ matchp ; exp } : case_branch) : string list = 
         join ~joiner:"=>" 
         (gen_pattern matchp) 
-        (gen_expression exp)
+        (gen_expression exp |> parenthesize)
       in
       let header = gen_expression sum 
                  |> prefix ~prefix:"case "
@@ -322,7 +322,7 @@ and gen_expression : expression -> string list = function
       guard' @ then_branch' @ else_branch'
   | App { func ; arg } ->
       join ~joiner:" " ~with_space:false
-      (gen_expression func)
+      (gen_expression func |> parenthesize)
       (gen_expression arg |> parenthesize)
   | LocalBinding { bindings ; usage } ->
       let bindings' = List.map ~f:gen_binding bindings 
@@ -334,19 +334,96 @@ and gen_expression : expression -> string list = function
   | GlobalBinding binding -> gen_binding binding
   | SeqOp seq_op -> gen_seqop seq_op
 
-(* current does nothing, should enforce the char limit *)
-(* probably needs a helper function to find the indent depth of a line *)
-(* maybe parenmatch-ish thing to remove unnecessary parenthesis *)
-let clean_parens' (line : string) : string = 
-  let parens = String.to_list line 
-               |> List.map ~f:(function | '(' -> 1 | ')' -> -1 | _ -> 0) 
+(* parenmatch-ish thing to remove unnecessary parenthesis *)
+(* suppress all the prints lmao *)
+let print_endline _ = ()
+let alpha : string = "abcdefghijklmnopqrstuvwxyz"
+let gen_rand_str (seed : int) : string =
+  Random.init seed;
+  String.init ~f:(fun _ -> String.get alpha (Random.int 26)) 10
+let scanincl ~f ~init = List.folding_map ~init ~f:(fun a e -> f a e, f a e)
+let contains_breaks : string -> bool = 
+  String.exists ~f:(List.mem ~equal:(Char.equal) [' '; ','; '('; ')'])
+let parens (line : string) : (int * int) list =
+  let n = String.length line in
+  String.to_list line 
+  |> List.foldi ~init:([], []) ~f:(fun i (stack, ps) -> function 
+    | '(' -> i :: stack, ps 
+    | ')' -> (match stack with
+              | [] -> [], (-1, i) :: ps
+              | j :: s' -> s', (j, i) :: ps)
+    | _ -> (stack, ps)
+    )
+  |> fun (stack, ps) -> 
+      List.fold ~init:ps ~f:(fun ps i -> (i, n) :: ps) stack
+  |> List.sort ~compare:(fun (i,j) (i',j') -> 
+      if i = i' then Int.compare j j' else Int.compare i i')
+let print_parens ?(prefix = "") parens = 
+  List.map ~f:(fun (a,b) -> Int.to_string a, Int.to_string b) parens 
+  |> List.map ~f:(fun (i,j) -> "("^i^","^j^")") 
+  |> String.concat ~sep:" " 
+  |> fun s -> prefix ^ s
+  |> print_endline
+let rec clean_parens' ?(within_parens = false) (line : string) : string =
+  let _ = print_endline ("line: " ^ line) in
+  let n = String.length line in
+  let line_parens = parens line in
+  let _ = print_parens ~prefix:"parens: " line_parens in
+  let matched_parens = 
+    List.filter ~f:(fun (i,j) -> i > -1 && j < n) line_parens
   in
-  let depth = List.folding_map ~init:0 ~f:(fun c i -> (c + i, c + i)) parens in
-  let _zipped = List.zip_exn parens depth 
-               |> List.mapi ~f:(fun i (p, d) -> i, p, d) 
+  let _ = print_parens ~prefix:"matched: " matched_parens in
+  let filtered_parens = scanincl ~init:(-2, -2) ~f:(fun (s,e) (i,j) -> 
+                          if e < i then i,j else s,e) matched_parens 
+                        |> List.zip_exn matched_parens
+                        |> List.filter ~f:(fun ((s,e), (i,j)) -> 
+                            s = i && e = j)
+                        |> List.map ~f:snd
+                        |> List.map ~f:(fun (i,j) -> (i,j), String.sub ~pos:i ~len:(j-i+1) line)
   in
-  line
-let clean_parens : string list -> string list = Fn.id
+  let _ = List.map ~f:fst filtered_parens |> print_parens ~prefix:"filtered: " in
+  let _ = within_parens in
+  match filtered_parens with
+  | [] -> line
+  | [((i,j),_)] -> 
+      if i = 0 && j = n - 1
+      then
+        let line' = clean_parens' ~within_parens:true (String.sub ~pos:1 ~len:(n-2) line) in
+        if within_parens 
+        then line' 
+        else if contains_breaks line' 
+             then "(" ^ line' ^ ")" 
+             else line'
+      else
+        let line' = List.map ~f:(fun ((i,j),s) -> (i,j), clean_parens' s) 
+                      filtered_parens 
+                    |> List.fold_right ~init:line ~f:(fun ((i,j),s) line' -> 
+                        String.substr_replace_first ~pos:i 
+                          ~pattern:(String.sub ~pos:i ~len:(j-i+1) line') 
+                          ~with_:s line') 
+        in
+        let _ = print_endline ("line': " ^ line') in
+        line'
+  | _ ->
+      let line' = List.map ~f:(fun ((i,j),s) -> (i,j), clean_parens' s) 
+                    filtered_parens 
+                  |> List.fold_right ~init:line ~f:(fun ((i,j),s) line' -> 
+                      String.substr_replace_first ~pos:i 
+                        ~pattern:(String.sub ~pos:i ~len:(j-i+1) line') 
+                        ~with_:s line') 
+      in
+      let _ = print_endline ("line': " ^ line') in
+      if String.(line' = line)
+      then line'
+      else clean_parens' line'
+let clean_parens (lines : string list) : string list = 
+  let sep = "[[[" ^ gen_rand_str (List.length lines) ^ "]]]" in
+  let sep_len = String.length sep in
+  let cleaned = String.concat ~sep lines |> clean_parens' in
+  String.substr_index_all ~may_overlap:false ~pattern:sep cleaned
+  |> List.fold_right ~init:([], cleaned) ~f:(fun i (lines, rest) -> 
+      (String.drop_prefix rest (i + sep_len)) :: lines, String.prefix rest i) 
+  |> fun (tl, hd) -> hd :: tl
 
 (* enfore the character limit *)
 let rec count_spaces (line : string) : int = 
