@@ -289,7 +289,7 @@ and parse_datatype_recur () =
       | Ok t -> Ok ({ id = dc; typ = Some t })
       | _ -> tokens := stack; Error (SyntaxError "cannot parse datatype (unused of)")
     )
-    | _ -> Ok ({ id = dc; typ = Some TUnit })
+    | _ -> Ok ({ id = dc; typ = None })
   )
   | _ -> Error (SyntaxError "cannot parse datatype")
 
@@ -822,7 +822,6 @@ and parse_expr_top () =
           | _ -> (
             match (parse_pattern ()) with
             | Ok p -> (
-              print_endline "testing222";
               match (List.hd !tokens) with
               | Some IS_IN -> tokens := List.drop !tokens 1; (
                 match (parse_expr ()) with

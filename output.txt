@@ -1,3 +1,4 @@
+(* type tree = Leaf of Z | Node of Tree * Z * Tree *)
 TYPE
 ID tree
 EQUALS
@@ -12,6 +13,8 @@ TIMES
 INT
 TIMES
 ID tree
+
+
 ID find
 LPAREN
 ID t

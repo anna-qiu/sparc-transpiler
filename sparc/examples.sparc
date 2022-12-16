@@ -22,13 +22,11 @@ end
 fun f (x) = _Some (x)
 fun g (x,y) = _Some (x,y)
 
-|{f x}|
 <<>>
-<<{f S 10}>>
-{f S 10}[5]
-{f S 10}[i: {f 2}]
-<<{f i} : 0 <= i < 10>>
-<<{f x} : x \in <<{f i} : 0 <= i < 10>> >>
+S[5]
+{scan max 0 S}[0:10]
+{map add_one S} ++ {filter is_prime T}
 <<(x, y) \in S | {f (x, y)}>>
+<<{add (x, y)} : (x, y) \in <<{f (i-1) (i/2)} : 0 <= i < |S|>> >>
 
-{map f S} ++ {filter g S2}
+type opt = _none | _some of Z
