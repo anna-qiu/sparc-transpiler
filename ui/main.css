@@ -239,6 +239,7 @@ main>div {
 }
 
 .note {
+  margin   : 1em auto 2em;
   font-size: 0.8em;
 }
 
