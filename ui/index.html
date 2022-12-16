@@ -5,11 +5,52 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>transpile sparc</title>
+  <!-- <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" rel="stylesheet"> -->
+  <link rel="stylesheet" href="./main.css">
+  <link rel="stylesheet" href="./prism.css">
 </head>
 <body>
-  <input type="text" name="" id="in">
-  <div id="out"></div>
-  <!-- <script src="./transpile.js"></script> -->
+
+  <header>
+    <div id="title">sparc transpiler</div>
+    <div id="by">anna, joanna</div>
+  </header>
+
+  <main>
+    <div id="original">
+      <div id="original_title">input:</div>
+
+      <!-- <textarea name="original" id="original_code" placeholder="enter some sparc here..."></textarea> -->
+      <div id="original_code" contenteditable="true" placeholder="enter some sparc here..."></div>
+
+      <div id="original_buttons">
+        <div class="original_action">
+          <button id="convert">convert!</button>
+        </div>
+        <div class="original_action">
+          <!-- <label for="tab">tab size:</label> -->
+          <!-- <input type="number" name="tab" id="tab_size" value="2"> -->
+          tab size: <span id="tab_size" contenteditable="true">2</span> spaces
+        </div>
+        <div class="original_action">
+          <!-- <label for="chars">line width:</label> -->
+          <!-- <input type="number" name="chars" id="char_limit" value="80"> -->
+          line width: <span id="char_limit" contenteditable="true">80</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="processed">
+      <div id="processed_title">output:</div>
+      <pre><code id="processed_code" class="lang-sml"></code></pre>
+    </div>
+  </main>
+
+  <footer>
+    questions? uh ask your favorite 210 ta or something idk
+  </footer>
+
   <script src="./main.js" type="module"></script>
+  <script src="./prism.js"></script>
 </body>
 </html>

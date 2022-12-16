@@ -1,0 +1,139 @@
+@import url('https://fonts.googleapis.com/css2?family=Comfortaa&family=Inconsolata&family=Noto+Sans&family=Ubuntu+Mono&family=VT323&display=swap');
+
+* {
+  position: relative;
+}
+
+body {
+  font-family: 'Noto Sans', sans-serif;
+
+  --accent  : purple;
+  --title   : purple;
+  --subtitle: grey;
+  --button  : #a592a5;
+  --footer  : grey;
+
+  --title-font  : 'Comfortaa', sans-serif;
+  /* --code-font: 'Ubuntu Mono', monospace; */
+  --code-font   : 'VT323', 'Inconsolata', monospace;
+}
+
+::selection {
+  background-color: var(--accent);
+  color           : #fff;
+}
+
+button {
+  cursor               : pointer;
+  padding              : 0.25em 0.45em;
+  font-size            : 1em;
+  color                : var(--button);
+  background-color     : transparent;
+  border               : 1px solid var(--button);
+  border-radius        : 5px;
+  -webkit-border-radius: 5px;
+  -moz-border-radius   : 5px;
+  -ms-border-radius    : 5px;
+  -o-border-radius     : 5px;
+  -moz-border-radius   : 10%;
+}
+
+header,
+main,
+footer {
+  margin: auto;
+  width : min(90%, 750px);
+}
+
+header {
+  margin-top   : 3em;
+  margin-bottom: 1em;
+}
+
+header #title {
+  font-size  : 1.5em;
+  color      : var(--title);
+  font-family: var(--title-font);
+}
+
+header #by {
+  margin-top: 0.5em;
+  font-size : 0.8em;
+  color     : var(--subtitle);
+}
+
+main {
+  margin-top   : 1em;
+  margin-bottom: 1em;
+}
+
+main>div {
+  margin: 1em auto;
+}
+
+#original_title {
+  font-family: var(--title-font);
+}
+
+#original_code {
+  margin : 0.5em auto;
+  padding: 1em;
+
+  background-color: #f5f2f0;
+
+  font-family: var(--code-font);
+  line-height: 1.1;
+}
+
+#original_code:empty:before {
+  content: attr(placeholder);
+  color  : #555;
+}
+
+#original_code::selection {
+  text-shadow: none;
+  background : #b3d4fc;
+  color      : #000;
+}
+
+.original_action {
+  display     : inline-block;
+  margin-right: 1em;
+  font-size   : 0.7em;
+  color       : var(--button);
+}
+
+.original_action input {
+  width    : 2em;
+  font-size: 0.7em;
+}
+
+.original_action span {
+  display      : inline-block;
+  width        : 1.75em;
+  text-align   : center;
+  border-bottom: 1px solid;
+}
+
+#processed_title {
+  font-family: var(--title-font);
+}
+
+pre,
+code {
+  font-family: var(--code-font) !important;
+  line-height: 1.1 !important;
+}
+
+pre::selection,
+code::selection {
+  text-shadow: none;
+  background : #b3d4fc;
+  color      : #000;
+}
+
+footer {
+  font-size : 0.8em;
+  color     : var(--footer);
+  text-align: center;
+}

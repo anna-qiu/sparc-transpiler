@@ -15,4 +15,3 @@ let transpile (code_string : string) : string =
 
 let _ = Js.export "transpile" 
   (fun s -> s |> Js.to_string |> transpile |> Js.string)
-let _ = Js.export "add" (fun x y -> x +. y)
