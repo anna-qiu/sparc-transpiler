@@ -1,8 +1,8 @@
 open! Syntax
 open! Core
 
-let character_limit = 80
-let tab_size = 2
+let character_limit = ref 80
+let tab_size = ref 2
 
 (* redefine list.append as infix @ *)
 let (@) l1 l2 = List.append l1 l2
@@ -14,7 +14,7 @@ let rec indent ?(skip_first = true) ?(depth = 1) = function
       if skip_first
       then hd :: (indent ~skip_first:false ~depth tl)
       else 
-        (String.make (depth * tab_size) ' ' ^ hd) :: (indent ~skip_first:false ~depth tl)
+        (String.make (depth * !tab_size) ' ' ^ hd) :: (indent ~skip_first:false ~depth tl)
 let indent_all ?(depth = 1) = indent ~skip_first:false ~depth
 
 let combine (first : string) = function
@@ -335,12 +335,71 @@ and gen_expression : expression -> string list = function
 (* current does nothing, should enforce the char limit *)
 (* probably needs a helper function to find the indent depth of a line *)
 (* maybe parenmatch-ish thing to remove unnecessary parenthesis *)
-let prettify : string list -> string list = function
-  | [] -> []
-  | code -> code
+let clean_parens' (line : string) : string = 
+  let parens = String.to_list line 
+               |> List.map ~f:(function | '(' -> 1 | ')' -> -1 | _ -> 0) 
+  in
+  let depth = List.folding_map ~init:0 ~f:(fun c i -> (c + i, c + i)) parens in
+  let _zipped = List.zip_exn parens depth 
+               |> List.mapi ~f:(fun i (p, d) -> i, p, d) 
+  in
+  line
+let clean_parens : string list -> string list = Fn.id
+
+(* enfore the character limit *)
+let rec count_spaces (line : string) : int = 
+  match String.length line with
+  | 0 -> 0
+  | _ -> match String.get line 0 with
+         | ' ' -> 1 + count_spaces (String.drop_prefix line 1)
+         | _ -> 0
+let find_indent (line : string) : int = (count_spaces line) / !tab_size
+let rec split_with_delim ~(on : char) (line : string) : string list =
+  match String.lsplit2 ~on line with
+  | Some (s1, s2) -> s1 :: (String.of_char on) :: (split_with_delim ~on s2)
+  | None -> [ line ]
+let enforce_line (line : string) : string list = 
+  let indent_depth = find_indent line in
+  let character_limit = !character_limit in
+  let splits = String.strip line |> split_with_delim ~on:' ' in
+  let splits = 
+    if List.exists ~f:(fun s -> String.length s > character_limit) splits
+    then List.map ~f:(split_with_delim ~on:',') splits |> List.concat
+    else splits
+  in
+  let rec create_lines (pieces : string list) (line_num : int) : string list = 
+    let rec create_line ?(i = 0) (acc : string) (pieces : string list)
+      : string * string list = 
+      let indent_width = 
+        (match line_num with | 0 -> indent_depth | _ -> (indent_depth + 1)) 
+        * !tab_size
+      in
+      match pieces with
+      | [] -> acc, []
+      | hd :: tl -> 
+          match i with
+          | 0 -> create_line ~i:(i + 1) (String.make indent_width ' ' ^ hd) tl 
+          | _ -> 
+              if String.length acc + String.length hd > character_limit
+              then if String.(hd = " ") then acc, tl else acc, pieces
+              else create_line ~i:(i + 1) (acc ^ hd) tl 
+    in
+    let line, rest = create_line "" pieces in
+    match rest with
+    | [] -> [ line ]
+    | _  -> line :: (create_lines rest (line_num + 1))
+  in
+  create_lines splits 0 |> List.filter ~f:(fun s -> String.length s > 0)
+let enforce_lines (lines : string list) : string list = 
+  List.map ~f:enforce_line lines
+  |> List.concat
+
+let prettify (lines : string list) : string list = 
+  clean_parens lines 
+  |> enforce_lines
 
 let codegen (main : main) : string = 
   List.map ~f:gen_expression main 
+  |> List.map ~f:prettify
   |> List.concat
-  |> prettify
   |> String.concat ~sep:"\n"
