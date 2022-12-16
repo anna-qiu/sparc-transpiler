@@ -1,4 +1,4 @@
-// import "../_build/default/transpile.bc.js";
+import "./transpile.js";
 
 console.log(transpile);
 // console.log(transpile(""));
