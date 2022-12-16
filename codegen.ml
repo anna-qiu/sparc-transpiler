@@ -72,6 +72,7 @@ let gen_infix_op : bin_op -> string = function
   | Equals -> "="
   | Or -> "orelse"
   | And -> "andalso"
+  | Mod -> "mod"
 
 let rec gen_typ : typ -> string list = function
   | TParen typ -> gen_typ typ |> parenthesize
