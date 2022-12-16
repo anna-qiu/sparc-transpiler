@@ -247,6 +247,12 @@ main>div {
   font-family: var(--title-font);
 }
 
+.small_note {
+  margin   : 1em auto;
+  font-size: 0.6em;
+  color    : var(--subtitle);
+}
+
 #original_code {
   margin : 0.5em auto;
   padding: 1em;
