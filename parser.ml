@@ -23,6 +23,7 @@ type token =
   | NUM of float
   | NOT
   | NAT
+  | MOD
   | MINUS
   | LPAREN
   | LET
@@ -621,7 +622,7 @@ and parse_expr_plus () =
   )
   | _ -> Error (SyntaxError "cannot parse expression (plus)")
 
-(* e -> e1 * / e2 *)
+(* e -> e1 * / % e2 *)
 and parse_expr_mult () =
   let stack = !tokens in
   match (parse_expr_not ()) with
@@ -638,6 +639,7 @@ and parse_expr_mult () =
       match (List.hd !tokens) with
       | Some TIMES -> tokens := List.drop !tokens 1; op := Times;
       | Some DIV -> tokens := List.drop !tokens 1; op := Divide;
+      | Some MOD -> tokens := List.drop !tokens 1; op := Mod;
       | _ -> print_debug ("Failed to find op" ); is_looping := false;
       ;
       if !is_looping then print_op !op;

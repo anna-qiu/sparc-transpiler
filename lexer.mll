@@ -59,6 +59,7 @@ rule token = parse
   | '-' { MINUS }
   | '*' { TIMES }
   | '/' { DIV }
+  | '%' { MOD }
   | "||" { PARA }
   | '|' { BAR }
   | '>' { GREATER }

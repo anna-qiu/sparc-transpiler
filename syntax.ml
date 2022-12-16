@@ -260,6 +260,7 @@ and bin_op =
   | Minus
   | Times
   | Divide
+  | Mod
   | Less
   | Greater
   | Equals
