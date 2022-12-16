@@ -32,6 +32,7 @@
 in x end</code></pre> 
         as a human (👀), we can see that we're binding <code class="lang-sml">a</code> to <code class="lang-sml">x</code> and <code class="lang-sml">b</code> to <code class="lang-sml">y</code>. however, when scanning the code, the parser sees <code class="lang-sml">let x = a y = b in x end</code>, which could be interpreted as intended or as binding <code class="lang-sml">(a y) = b</code> to <code class="lang-sml">x</code>. thus, we <a href="../sparc-modified-spec.pdf">modified the sparc specification</a> to disambiguate things like this.
       </div>
+      <div class="note">there are also a few bugs...</div>
     </div>
 
     <div id="original">
